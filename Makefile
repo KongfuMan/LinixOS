@@ -11,9 +11,10 @@ U=user
 OBJS = \
   $K/entry.o \
   $K/trampoline.o \
+  $K/main.o \
+  $K/kernelvec.o \
 #   $K/kalloc.o \
 #   $K/string.o \
-#   $K/main.o \
 #   $K/vm.o \
 #   $K/proc.o \
 #   $K/swtch.o \
@@ -28,7 +29,6 @@ OBJS = \
 #   $K/pipe.o \
 #   $K/exec.o \
 #   $K/sysfile.o \
-#   $K/kernelvec.o \
 #   $K/plic.o \
 #   $K/virtio_disk.o
 

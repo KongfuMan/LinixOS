@@ -4,6 +4,7 @@ ENTRY( _entry )
 SECTIONS
 {
   /*
+   * set cursor '.' to be 0x80000000 to
    * ensure that entry.S / _entry is at 0x80000000,
    * where qemu's -kernel jumps.
    */
@@ -11,7 +12,7 @@ SECTIONS
 
   .text : {
     *(.text .text.*)
-    . = ALIGN(0x1000);
+    . = ALIGN(0x1000);  /*0x1000 = 4096*/
     _trampoline = .;
     *(trampsec)
     . = ALIGN(0x1000);
