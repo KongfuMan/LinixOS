@@ -163,8 +163,8 @@ tags: $(OBJS) _init
 # 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
 # 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
-# mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
-# 	gcc $(XCFLAGS) -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
+mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
+	gcc $(XCFLAGS) -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
@@ -261,8 +261,8 @@ UEXTRA=
 # endif
 
 
-fs.img: mkfs/mkfs README $(UEXTRA) $(UPROGS)
-	mkfs/mkfs fs.img README $(UEXTRA) $(UPROGS)
+fs.img: mkfs/mkfs README.md $(UEXTRA) $(UPROGS)
+	mkfs/mkfs fs.img README.md $(UEXTRA) $(UPROGS)
 
 -include kernel/*.d user/*.d
 
@@ -408,4 +408,4 @@ endif
 # 	fi;
 
 
-# .PHONY: handin tarball tarball-pref clean grade handin-check
+.PHONY: handin tarball tarball-pref clean grade handin-check
