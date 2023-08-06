@@ -45,7 +45,8 @@ gdb-multiarch
 2. run into gdb debugging error?
     > warning:  ".gdbinit" auto-loading has been declined by your `auto-load safe-path' set to "$debugdir:$datadir/auto-load".
 
-    create and open gdb config file `${home}/.config/gdb/gdbinit`. add the following line into the file:
-    ```
-    add-auto-load-safe-path ${project_root}/.gdbinit
-    ```
+    - create and open gdb config file `${home}/.config/gdb/gdbinit`. 
+    - Add the following line into the file:
+        ```
+        add-auto-load-safe-path ${project_root}/.gdbinit
+        ```

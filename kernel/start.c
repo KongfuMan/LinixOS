@@ -73,8 +73,10 @@ timerinit()
   w_mtvec((uint64)timervec);
 
   // enable machine-mode interrupts.
-  w_mstatus(r_mstatus() | MSTATUS_MIE);
+//   w_mstatus(r_mstatus() | MSTATUS_MIE);
+  w_mstatus(r_mstatus() & ~MSTATUS_MIE);
 
   // enable machine-mode timer interrupts.
-  w_mie(r_mie() | MIE_MTIE);
+//   w_mie(r_mie() | MIE_MTIE);
+  w_mie(r_mie() & ~MIE_MTIE);
 }
