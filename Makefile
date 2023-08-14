@@ -13,8 +13,8 @@ OBJS = \
   $K/trampoline.o \
   $K/main.o \
   $K/kernelvec.o \
-#   $K/kalloc.o \
-#   $K/string.o \
+  $K/kalloc.o \
+  $K/string.o \
 #   $K/vm.o \
 #   $K/proc.o \
 #   $K/swtch.o \
@@ -36,7 +36,7 @@ OBJS_KCSAN = \
   $K/start.o \
   $K/uart.o \
   $K/console.o \
-#   $K/printf.o \
+  $K/printf.o \
 #   $K/spinlock.o
 
 # ifdef KCSAN
@@ -62,7 +62,7 @@ OBJS_KCSAN = \
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
-#TOOLPREFIX = 
+TOOLPREFIX = 
 
 # Try to infer the correct TOOLPREFIX if not set
 ifndef TOOLPREFIX

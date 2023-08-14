@@ -1,3 +1,5 @@
+#include "types.h"
+
 #ifndef __ASSEMBLER__
 
 // which hart (core) is this?

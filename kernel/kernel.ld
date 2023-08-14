@@ -18,6 +18,7 @@ SECTIONS
     . = ALIGN(0x1000);
     ASSERT(. - _trampoline == 0x1000, "error: trampoline larger than one page");
     PROVIDE(etext = .);
+    PROVIDE(etestlc = .);
   }
 
   .rodata : {
@@ -42,4 +43,5 @@ SECTIONS
   }
 
   PROVIDE(end = .);
+  PROVIDE(myend = .);
 }
