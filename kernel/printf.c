@@ -60,20 +60,18 @@ volatile int panicked = 0;
 // }
 
 // Print to the console. only understands %d, %x, %p, %s.
-void
-printf(char *fmt, ...)
+void printf(char *fmt, ...)
 {
     int i, c;
     if (fmt == 0)
-        return; //panic("null fmt");
+        panic("null fmt");
 
     for(i = 0; (c = fmt[i] & 0xff) != 0; i++){
         uart_putc(c);
     }
 }
 
-void
-panic(char *s)
+void panic(char *s)
 {
     printf("panic: ");
     printf(s);

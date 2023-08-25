@@ -1,6 +1,7 @@
-#include "memlayout.h"
 #include "types.h"
+#include "riscv.h"
 #include "defs.h"
+#include "memlayout.h"
 #include <stdbool.h>
 
 // the UART control registers are memory-mapped

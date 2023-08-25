@@ -1,5 +1,6 @@
-#include "defs.h"
+#include "types.h"
 #include "riscv.h"
+#include "defs.h"
 
 void check_page_content(void* pa, int expected){
     char* cpg = (char*)pa;
@@ -24,10 +25,11 @@ void test_alloc_dealloc(){
 void main(){
     consoleinit();
     // printfinit();
+    printf("Begin initialization.");
     kinit();            // init physical page allocator
-    test_alloc_dealloc();
-    // kvminit();       // create kernel page table
-    // kvminithart();   // turn on paging
+    // test_alloc_dealloc();
+    kvminit();          // create kernel page table.
+    kvminithart();      // enable paging for each hart.
     // procinit();      // process table
     // trapinit();      // trap vectors
     // trapinithart();  // install kernel trap vector

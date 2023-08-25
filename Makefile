@@ -15,8 +15,8 @@ OBJS = \
   $K/kernelvec.o \
   $K/kalloc.o \
   $K/string.o \
-#   $K/vm.o \
-#   $K/proc.o \
+  $K/vm.o \
+  $K/proc.o \
 #   $K/swtch.o \
 #   $K/trap.o \
 #   $K/syscall.o \
@@ -100,6 +100,10 @@ CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I.
 CFLAGS += -O0
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
+
+# physical memory size
+DRAM_SIZE := 128
+CFLAGS += -DDRAM_SIZE=$(DRAM_SIZE)
 
 # ifeq ($(LAB),net)
 # CFLAGS += -DNET_TESTS_PORT=$(SERVERPORT)
@@ -290,7 +294,7 @@ endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)
 
-QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
+QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m $(DRAM_SIZE)M -smp $(CPUS) -nographic
 QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0

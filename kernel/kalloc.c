@@ -1,10 +1,9 @@
-// Physical memory allocator with minal granularity of a page
-// 
+// Physical memory allocator in unit of sinlge page
 
+#include "types.h"
+#include "riscv.h"
 #include "defs.h"
 #include "memlayout.h"
-#include "riscv.h"
-#include "types.h"
 
 void kfreerange(void* pa_start, void* pa_end);
 void kfree(void* pa);
@@ -44,18 +43,17 @@ void
 kfree(void* pa){
     struct run* r;
     if ((uint64)pa % PGSIZE != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP){
-        // panic
-        return;
+        panic("kfree");
     }
 
     memset(pa, 0, PGSIZE);
 
     r = (struct run*)pa;
 
-    //TODO: acquire lock
+    // TODO: acquire lock
     r->next = kmem.freelist;
     kmem.freelist = r;
-    //TODO: release lock
+    // TODO: release lock
 }
 
 // allocate a physical page and return the beginning addr
@@ -66,11 +64,14 @@ kalloc(){
     r = kmem.freelist;
     if (r){
         kmem.freelist = r->next;
+    }else{
+        printf("Memory used up.");
     }
+    
     //TODO: release lock
 
     if (r){
-        memset((char*)r, 1, PGSIZE);
+        memset((char*)r, 5, PGSIZE);
     }
     return (void*)r;
 }
