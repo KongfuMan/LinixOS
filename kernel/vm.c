@@ -1,5 +1,7 @@
+#include "param.h"
 #include "types.h"
 #include "riscv.h"
+#include "proc.h"
 #include "defs.h"
 #include "memlayout.h"
 
@@ -18,11 +20,17 @@ kvmmake(void){
     // then convert address to the pointer of type uint64
     pagetable_t pgtable = (pagetable_t)kalloc();
     memset(pgtable, 0, PGSIZE);
-    kvmmap(pgtable, UART0, UART0, PGSIZE, PTE_R | PTE_W); // UART0, CLINT, KERNBASE, etext, align with PGSIZE
-    kvmmap(pgtable, CLINT, CLINT, PGSIZE, PTE_R | PTE_W);
+    uint64 size = (uint64)PLIC_MMAP_SIZE;
+    kvmmap(pgtable, PLIC, PLIC, size, PTE_R | PTE_W);
+
+    kvmmap(pgtable, UART0, UART0, PGSIZE, PTE_R | PTE_W);
+
+    kvmmap(pgtable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+
     kvmmap(pgtable, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
-    uint64 size = PHYSTOP - (uint64)etext;
-    kvmmap(pgtable, (uint64)etext, (uint64)etext, size, PTE_R | PTE_W);
+
+    kvmmap(pgtable, (uint64)etext, (uint64)etext, PHYSTOP - (uint64)etext, PTE_R | PTE_W);
+
     kvmmap(pgtable, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_W);
 
     // set kernel stack for each proc
@@ -50,6 +58,11 @@ kvminithart()
     sfence_vma();
 }
 
+// Return the address of the PTE of leaf level page table from root page table `pgtable`
+// that corresponds to virtual address `va`. 
+// If alloc!=0,create any required page-table pages.
+// <param>pgtable: phyiscal address of root page table </param>
+// <param>va: virtual address to be mapped from </param>
 pte_t* dowalk(pagetable_t pagetable, uint64 va, int alloc, int* count){
     if(va >= MAXVA)
         panic("walk");
@@ -67,13 +80,11 @@ pte_t* dowalk(pagetable_t pagetable, uint64 va, int alloc, int* count){
             *pte = PA2PTE(pagetable) | PTE_V;
         }
     }
+
+    // pagetable is the leaf.
     return &pagetable[PX(0, va)];
 }
 
-// Return the address of the PTE of leaf level page table from root page table `pgtable`
-// that corresponds to virtual address `va`.  If alloc!=0,create any required page-table pages.
-// <param pgtable> phyiscal address of root page table </param>
-// <param va> virtual address to be mapped from </param>
 pte_t * walk(pagetable_t pgtable, uint64 va, int alloc){
     int count = 0;
     return dowalk(pgtable, va, alloc, &count);
@@ -120,6 +131,19 @@ mappages(pagetable_t pgtable, uint64 va, uint64 size, uint64 pa, int permission)
         pa += PGSIZE;
         total += count;
     }
-    printf("total %d new page tables.\n", total);
+    printf("%d page tables created.\n", total);
     return 0;
+}
+
+// create an empty user page table.
+// returns 0 if out of memory.
+pagetable_t uvmcreate()
+{
+    pagetable_t pagetable;
+    pagetable = (pagetable_t) kalloc();
+    if(pagetable == 0){
+        return 0;
+    }
+    memset(pagetable, 0, PGSIZE);
+    return pagetable;
 }

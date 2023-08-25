@@ -9,16 +9,17 @@ K=kernel
 U=user
 
 OBJS = \
-  $K/entry.o \
-  $K/trampoline.o \
-  $K/main.o \
-  $K/kernelvec.o \
-  $K/kalloc.o \
-  $K/string.o \
-  $K/vm.o \
-  $K/proc.o \
-#   $K/swtch.o \
-#   $K/trap.o \
+	$K/entry.o \
+	$K/trampoline.o \
+	$K/main.o \
+	$K/kernelvec.o \
+	$K/kalloc.o \
+	$K/string.o \
+	$K/vm.o \
+	$K/proc.o \
+	$K/trap.o \
+	$K/plic.o \
+	$K/swtch.o \
 #   $K/syscall.o \
 #   $K/sysproc.o \
 #   $K/bio.o \
@@ -29,7 +30,6 @@ OBJS = \
 #   $K/pipe.o \
 #   $K/exec.o \
 #   $K/sysfile.o \
-#   $K/plic.o \
 #   $K/virtio_disk.o
 
 OBJS_KCSAN = \

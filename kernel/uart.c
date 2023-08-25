@@ -1,5 +1,7 @@
+#include "param.h"
 #include "types.h"
 #include "riscv.h"
+#include "proc.h"
 #include "defs.h"
 #include "memlayout.h"
 #include <stdbool.h>

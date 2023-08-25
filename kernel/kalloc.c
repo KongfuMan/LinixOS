@@ -1,7 +1,8 @@
 // Physical memory allocator in unit of sinlge page
-
+#include "param.h"
 #include "types.h"
 #include "riscv.h"
+#include "proc.h"
 #include "defs.h"
 #include "memlayout.h"
 
