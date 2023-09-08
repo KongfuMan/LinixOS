@@ -25,11 +25,3 @@ trampoline:
         # save user a0 in sscratch so
         # a0 can be used to get at TRAPFRAME.
         csrw sscratch, a0
-
-        # each process has a separate p->trapframe memory area,
-        # but it's mapped to the same virtual address
-        # (TRAPFRAME) in every process's user page table.
-        
-
-        # jump to usertrap(), which does not return
-        jr t0

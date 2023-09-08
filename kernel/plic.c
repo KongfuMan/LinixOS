@@ -3,6 +3,8 @@
 #include "memlayout.h"
 #include "riscv.h"
 #include "proc.h"
+#include "fs.h"
+#include "buf.h"
 #include "defs.h"
 
 void plicinit(){

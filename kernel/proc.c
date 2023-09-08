@@ -3,6 +3,8 @@
 #include "memlayout.h"
 #include "riscv.h"
 #include "proc.h"
+#include "fs.h"
+#include "buf.h"
 #include "defs.h"
 
 extern char trampoline[]; // trampoline.S
@@ -58,19 +60,6 @@ void scheduler(void){
     }
 }
 
-// a user program that calls exec("/init")
-// assembled from ../user/initcode.S
-// od -t xC ../user/initcode
-uchar initcode[] = {
-  0x17, 0x05, 0x00, 0x00, 0x13, 0x05, 0x45, 0x02,
-  0x97, 0x05, 0x00, 0x00, 0x93, 0x85, 0x35, 0x02,
-  0x93, 0x08, 0x70, 0x00, 0x73, 0x00, 0x00, 0x00,
-  0x93, 0x08, 0x20, 0x00, 0x73, 0x00, 0x00, 0x00,
-  0xef, 0xf0, 0x9f, 0xff, 0x2f, 0x69, 0x6e, 0x69,
-  0x74, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00
-};
-
 void proc_mapstacks(pagetable_t kpgtbl){
     struct proc *p;
 
@@ -122,10 +111,19 @@ proc_pagetable(struct proc *p){
         // TODO: 
         return 0;
     }
-    p->trapframe = (struct trapframe*)TRAPFRAME;
+    
+    // Error: should not set to user va at this point, because currently still in Kernel mode,
+    // 
+    // p->trapframe = (struct trapframe*)TRAPFRAME;
     return pgtable;
 }
 
+// allocate an empty proc and do necessary initializatio
+// - set proc id
+// - set proc state
+// - create proc user page table
+// - map TRAPFRAME to the pa of tramframe
+// - 
 struct proc* allocproc(){
     struct proc *p;
     for (p = proc; p < &proc[NPROC]; p++){
@@ -168,7 +166,21 @@ found:
     return p;
 }
 
-// Create the first proc, which runs the initcode
+// a user program that calls exec("/init")
+// assembled from ../user/initcode.S by executing command:
+// `od -t xC ../user/initcode`
+uchar initcode[] = {
+  0x17, 0x05, 0x00, 0x00, 0x13, 0x05, 0x45, 0x02,
+  0x97, 0x05, 0x00, 0x00, 0x93, 0x85, 0x35, 0x02,
+  0x93, 0x08, 0x70, 0x00, 0x73, 0x00, 0x00, 0x00,
+  0x93, 0x08, 0x20, 0x00, 0x73, 0x00, 0x00, 0x00,
+  0xef, 0xf0, 0x9f, 0xff, 0x2f, 0x69, 0x6e, 0x69,
+  0x74, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00
+};
+
+
+// Create the first proc, which runs the initcode above.
 void userinit(void){
     // 1. alloc a unnused proc
     struct proc *p = allocproc();
@@ -178,9 +190,31 @@ void userinit(void){
     initproc = p;
 
     // 2. allocate one user page and copy initcode's instructions and data into it.
-    // 
+    uvmfirst(p->pagetable, initcode, sizeof(initcode));
+    p->sz = PGSIZE; //p->sz is the  size used memory of proc.
 
     // 3. prepare for the very first "sret" from kernel to user.
+    p->trapframe->epc = 0;       // user program counter
+    p->trapframe->sp  = PGSIZE;  // user stack pointer
+
+    safestrcpy(p->name, "initcode", sizeof(p->name));
+    // p->cwd = namei("/");
 
     p->state = RUNNABLE;
 }
+
+// switch from proc kernel
+void sched(){
+    
+}
+
+void yield(void){
+    struct proc *p = current_proc();
+    p->state = SLEEPING;
+    sched();
+}
+
+void sleep(void* chan){
+    sched();
+}
+

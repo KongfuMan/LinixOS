@@ -8,11 +8,12 @@
 #include "types.h"
 // #include "spinlock.h"
 // #include "sleeplock.h"
-// #include "fs.h"
+#include "fs.h"
 // #include "file.h"
 #include "memlayout.h"
 #include "riscv.h"
 #include "proc.h"
+#include "buf.h"
 #include "defs.h"
 
 volatile int panicked = 0;

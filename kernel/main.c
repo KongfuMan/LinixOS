@@ -2,6 +2,8 @@
 #include "types.h"
 #include "riscv.h"
 #include "proc.h"
+#include "fs.h"
+#include "buf.h"
 #include "defs.h"
 
 void check_page_content(void* pa, int expected){
@@ -24,27 +26,51 @@ void test_alloc_dealloc(){
     kfree(pg);
 }
 
+void test_virtio_rw(){
+    // intr_on();
+    struct buf *bw = (struct buf*)kalloc();
+    bw->blockno = 100;
+    for (int i = 0; i < BSIZE; i++){
+        bw->data[i] = 'a';
+    }
+    virtio_disk_rw(bw, 1);
+    // struct buf *br = (struct buf*)kalloc();
+    // bw->blockno = 100;
+    // virtio_disk_rw(br, 0);
+}
+
+volatile int starting = 1;
+
 void main(){
-    consoleinit();
-    // printfinit();
-    printf("\n");
-    printf("xv6 kernel is booting\n");
-    printf("\n");
-    kinit();            // init physical page allocator
-    kvminit();          // create kernel page table.
-    kvminithart();      // enable paging for each hart.
-    procinit();         // process table
-    trapinit();         // trap vectors
-    trapinithart();     // install kernel trap vector
-    plicinit();         // set up interrupt controller
-    plicinithart();     // ask PLIC for device interrupts
-    // binit();         // buffer cache
-    // iinit();         // inode table
-    // fileinit();      // file table
-    // virtio_disk_init(); // emulated hard disk
-    userinit();         // first user process
-    __sync_synchronize();
-    printf("kernel started! \n");
-    printf("call scheduler() to run the first proc. \n");
+    if (starting == 1){
+        consoleinit();
+        // printfinit();
+        printf("\n");
+        printf("xv6 kernel is booting\n");
+        printf("\n");
+        kinit();            // init physical page allocator
+        kvminit();          // create kernel page table.
+        kvminithart();      // enable paging for each hart.
+        procinit();         // process table
+        trapinit();         // trap vectors
+        trapinithart();     // install kernel trap vector
+        plicinit();         // set up interrupt controller
+        plicinithart();     // ask PLIC for device interrupts
+        // binit();         // buffer cache
+        // iinit();         // inode table
+        // fileinit();      // file table
+        virtio_disk_init(); // emulated hard disk
+        userinit();         // first user process
+        __sync_synchronize();
+        starting = 0;
+    }else{
+        while(starting);
+        kvminithart();
+        trapinithart();
+        plicinithart();
+    }
+
+    printf("hart %d initialization complete. \n", cpuid());
+    printf("call scheduler() to context switch into the first proc. \n");
     scheduler(); 
 }
