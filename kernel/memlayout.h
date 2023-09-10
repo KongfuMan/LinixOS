@@ -1,5 +1,5 @@
 #ifndef DRAM_SIZE
-#error physical memory size not specified.
+#define DRAM_SIZE 128
 #endif
 
 // the kernel expects there to be RAM
