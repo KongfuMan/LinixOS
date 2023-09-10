@@ -46,7 +46,7 @@ void main(){
         consoleinit();
         // printfinit();
         printf("\n");
-        printf("xv6 kernel is booting\n");
+        printf("xv6 from scratch kernel is booting\n");
         printf("\n");
         kinit();            // init physical page allocator
         kvminit();          // create kernel page table.
