@@ -39,6 +39,7 @@ void kvminithart(void);
 int mappages(pagetable_t, uint64, uint64, uint64, int);
 pagetable_t uvmcreate(void);
 void uvmfirst(pagetable_t, uchar *, uint);
+pte_t * walk(pagetable_t pgtable, uint64 va, int alloc);
 
 //proc.c
 void proc_mapstacks(pagetable_t);
@@ -60,6 +61,8 @@ void usertrapret(void);
 //plic.c
 void plicinit(void);
 void plicinithart(void);
+int plic_claim(void); 
+void plic_complete(int);
 
 //swtch.S
 void swtch(struct context *from, struct context *to);
@@ -68,3 +71,6 @@ void swtch(struct context *from, struct context *to);
 void virtio_disk_init(void);
 void virtio_disk_rw(struct buf *, int);
 void virtio_disk_intr(void);
+
+// bio.c
+void binit(void);

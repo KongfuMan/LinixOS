@@ -14,31 +14,29 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
 
-
+// Make a direct-map page table for the kernel.
 pagetable_t
 kvmmake(void){
-    // interpreted as `uint64* pgtable = (uint64*)kalloc()`
-    // kalloc() returns the pa of starting of the created page.
-    // then convert address to the pointer of type uint64
-    pagetable_t pgtable = (pagetable_t)kalloc();
-    memset(pgtable, 0, PGSIZE);
-    uint64 size = (uint64)PLIC_MMAP_SIZE;
-    kvmmap(pgtable, PLIC, PLIC, size, PTE_R | PTE_W);
+    pagetable_t kpgtable = (pagetable_t)kalloc();
 
-    kvmmap(pgtable, UART0, UART0, PGSIZE, PTE_R | PTE_W);
+    memset(kpgtable, 0, PGSIZE);
 
-    kvmmap(pgtable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+    kvmmap(kpgtable, PLIC, PLIC, (uint64)PLIC_MMAP_SIZE, PTE_R | PTE_W);
 
-    kvmmap(pgtable, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
+    kvmmap(kpgtable, UART0, UART0, PGSIZE, PTE_R | PTE_W);
 
-    kvmmap(pgtable, (uint64)etext, (uint64)etext, PHYSTOP - (uint64)etext, PTE_R | PTE_W);
+    kvmmap(kpgtable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
 
-    kvmmap(pgtable, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_W);
+    kvmmap(kpgtable, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
+
+    kvmmap(kpgtable, (uint64)etext, (uint64)etext, PHYSTOP - (uint64)etext, PTE_R | PTE_W);
+
+    kvmmap(kpgtable, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
 
     // set kernel stack for each proc
-    proc_mapstacks(pgtable);
+    proc_mapstacks(kpgtable);
 
-    return pgtable;
+    return kpgtable;
 }
 
 // create kernel page table and create mappings (ptes) from va to pa

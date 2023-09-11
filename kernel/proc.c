@@ -45,6 +45,10 @@ void scheduler(void){
     struct proc *p;
     struct cpu *c = current_cpu();
     while(1){
+        int intrstatus = intr_get();
+        if (!intrstatus){
+            intr_on();
+        }
         for (p = proc; p < &proc[NPROC]; p++){
             if (p->state == RUNNABLE){
                 p->state = RUNNING;
@@ -74,7 +78,6 @@ void proc_mapstacks(pagetable_t kpgtbl){
 }
 
 void forkret(){
-    printf("running forkret. \n");
     usertrapret();
 }
 
@@ -168,7 +171,7 @@ found:
 
 // a user program that calls exec("/init")
 // assembled from ../user/initcode.S by executing command:
-// `od -t xC ../user/initcode`
+// od -t xC user/initcode
 uchar initcode[] = {
   0x17, 0x05, 0x00, 0x00, 0x13, 0x05, 0x45, 0x02,
   0x97, 0x05, 0x00, 0x00, 0x93, 0x85, 0x35, 0x02,
@@ -178,7 +181,6 @@ uchar initcode[] = {
   0x74, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00
 };
-
 
 // Create the first proc, which runs the initcode above.
 void userinit(void){
@@ -201,6 +203,16 @@ void userinit(void){
     // p->cwd = namei("/");
 
     p->state = RUNNABLE;
+
+    //validate
+   pte_t *pte = walk(p->pagetable, 0, 0);
+   uchar* actualInitCode = (uchar*)PTE2PA(*pte);
+   for (int i = 0; i < sizeof(initcode); i++){
+       if (*actualInitCode != initcode[i]){
+        panic("userinit");
+       }
+       actualInitCode++;
+   }
 }
 
 // switch from proc kernel

@@ -27,7 +27,6 @@ void test_alloc_dealloc(){
 }
 
 void test_virtio_rw(){
-    // intr_on();
     struct buf *bw = (struct buf*)kalloc();
     bw->blockno = 100;
     for (int i = 0; i < BSIZE; i++){
@@ -65,6 +64,7 @@ void main(){
         starting = 0;
     }else{
         while(starting);
+        __sync_synchronize();
         kvminithart();
         trapinithart();
         plicinithart();
