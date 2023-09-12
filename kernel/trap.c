@@ -26,18 +26,33 @@ void trapinithart(void)
 }
 
 void usertrap(){
-    uint64 scause = r_scause();
+    int intr = intr_get();
+    if (intr){}
+
+    if((r_sstatus() & SSTATUS_SPP) != 0){
+        panic("usertrap: not from user mode");
+    }
+
     w_stvec((uint64)kernelvec);
+
+    struct proc *p = current_proc();
+
+    // save user program counter.
+    p->trapframe->epc = r_sepc();
+
+    uint64 scause = r_scause();
     int which_dev = 0;
     if(scause == 8){
         // ecall from U-mode
-        printf("sys call. \n");
+        
+        p->trapframe->epc += 4;
+
         intr_on();
-    }
-    else if ((which_dev = devintr()) != 0){
+        printf("sys call. \n");
+    }else if ((which_dev = devintr()) != 0){
         // known source
-    }
-    else{
+
+    }else{
         panic("unknown intr source");
     }
     
