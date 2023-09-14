@@ -80,3 +80,27 @@ kalloc(){
     }
     return (void*)r;
 }
+
+int get_ref(void *pa){
+    int pfn = PA2PFN(pa);
+    if (pfn < 0 || pfn >= PFCOUNT){
+        panic("get_ref pfn out of range");
+    }
+    return kmem.ref_count[pfn];
+}
+
+void incr_ref(void *pa){
+    int pfn = PA2PFN(pa);
+    if (pfn < 0 || pfn >= PFCOUNT){
+        panic("get_ref pfn out of range");
+    }
+    ++kmem.ref_count[pfn];
+}
+
+void decr_ref(void *pa){
+    int pfn = PA2PFN(pa);
+    if (pfn < 0 || pfn >= PFCOUNT){
+        panic("get_ref pfn out of range");
+    }
+    --kmem.ref_count[pfn];
+}

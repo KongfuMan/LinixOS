@@ -135,6 +135,31 @@ mappages(pagetable_t pgtable, uint64 va, uint64 size, uint64 pa, int permission)
     return 0;
 }
 
+// unmap `n` pages starting from `va`.
+// do_free indiates whether free the physical page.
+void uvmunmap(pagetable_t pgtable, uint64 va, int n, int do_free){
+    if (va % PGSIZE){
+        panic("uvmunmap: given va not page aligned.");
+    }
+    uint64 addr;
+    pte_t *pte;
+    for (addr = va; (addr-va) / PGSIZE < n; addr += PGSIZE){
+        if ((pte = walk(pgtable, va, 0)) == 0){
+            panic("");
+        }
+        if (!((*pte) & PTE_V)){
+            panic("uvmunmap: page not mapped.");
+        }
+        if (PTE_FLAGS(*pte) == PTE_V){
+            panic("uvmunmap: page is not leaf.");
+        }
+        if (do_free){
+            kfree((void*)PTE2PA(*pte));
+        }
+        *pte = 0; //set pte to null
+    }
+}
+
 // create an empty user page table.
 // returns 0 if out of memory.
 pagetable_t uvmcreate()
@@ -163,9 +188,10 @@ void uvmfirst(pagetable_t pgtable, uchar *src, uint sz){
 }
 
 // copy each pte from old to new without actuall creating physical page for new pgtable.
-void uvmcopy(pagetable_t old, pagetable_t new, uint64 size){
-    
-    for (int va = 0; va < size; va += PGSIZE){
+// retrun 0 on success, -1 on failure
+int uvmcopy(pagetable_t old, pagetable_t new, uint64 size){
+    int va = 0;
+    for (; va < size; va += PGSIZE){
         pte_t *pte = walk(old, va, 0);
         
         *pte &= ~PTE_W;
@@ -173,8 +199,14 @@ void uvmcopy(pagetable_t old, pagetable_t new, uint64 size){
 
         int flag = PTE_FLAGS(*pte);
         uint64 pa = PTE2PA(*pte);
-        if (mappages(new, va, PGSIZE, pa, flag) ){
-
+        incr_ref((void*)pa);
+        if (mappages(new, va, PGSIZE, pa, flag) != 0){
+            goto err;
         }
     }
+    return 0;
+
+err:
+    uvmunmap(new, 0, va / PGSIZE, 0);
+    return -1;
 }
