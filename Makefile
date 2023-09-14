@@ -20,8 +20,10 @@ OBJS = \
 	$K/trap.o \
 	$K/plic.o \
 	$K/swtch.o \
-	$K/virtio_disk.o
-#   $K/syscall.o \
+	$K/virtio_disk.o \
+    $K/syscall.o \
+	$K/exec.o \
+	$K/sysfile.o \
 #   $K/sysproc.o \
 #   $K/bio.o \
 #   $K/fs.o \
@@ -29,8 +31,7 @@ OBJS = \
 #   $K/sleeplock.o \
 #   $K/file.o \
 #   $K/pipe.o \
-#   $K/exec.o \
-#   $K/sysfile.o \
+
 
 OBJS_KCSAN = \
   $K/start.o \

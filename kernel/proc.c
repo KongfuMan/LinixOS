@@ -115,9 +115,6 @@ proc_pagetable(struct proc *p){
         return 0;
     }
     
-    // Error: should not set to user va at this point, because currently still in Kernel mode,
-    // 
-    // p->trapframe = (struct trapframe*)TRAPFRAME;
     return pgtable;
 }
 
@@ -204,7 +201,7 @@ void userinit(void){
 
     p->state = RUNNABLE;
 
-    //validate
+    // validate
    pte_t *pte = walk(p->pagetable, 0, 0);
    uchar* actualInitCode = (uchar*)PTE2PA(*pte);
    for (int i = 0; i < sizeof(initcode); i++){
@@ -228,5 +225,20 @@ void yield(void){
 
 void sleep(void* chan){
     sched();
+}
+
+// Copy on write fork
+pid_t fork(){
+    struct proc *np, *p;
+    p = current_proc();
+    np = allocproc();
+
+    // copy page table
+    uvmcopy(p->pagetable, np->pagetable, p->sz);
+    np->sz = p->sz;
+
+
+
+    return 0;
 }
 

@@ -161,3 +161,20 @@ void uvmfirst(pagetable_t pgtable, uchar *src, uint sz){
     mappages(pgtable, 0, PGSIZE, (uint64)mem, PTE_W|PTE_R|PTE_X|PTE_U);
     memmove(mem, src, sz);
 }
+
+// copy each pte from old to new without actuall creating physical page for new pgtable.
+void uvmcopy(pagetable_t old, pagetable_t new, uint64 size){
+    
+    for (int va = 0; va < size; va += PGSIZE){
+        pte_t *pte = walk(old, va, 0);
+        
+        *pte &= ~PTE_W;
+        *pte |= PTE_COW;
+
+        int flag = PTE_FLAGS(*pte);
+        uint64 pa = PTE2PA(*pte);
+        if (mappages(new, va, PGSIZE, pa, flag) ){
+
+        }
+    }
+}

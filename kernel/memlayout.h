@@ -7,6 +7,7 @@
 // from physical address 0x80000000 to PHYSTOP.
 #define KERNBASE 0x80000000L
 #define PHYSTOP (KERNBASE + DRAM_SIZE*1024*1024)
+#define PFCOUNT (PHYSTOP - KERNBASE) / PGSIZE
 
 // virtual address of trampoline.S
 #define TRAMPOLINE (MAXVA - PGSIZE)

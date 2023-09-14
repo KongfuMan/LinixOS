@@ -48,7 +48,7 @@ void usertrap(){
         p->trapframe->epc += 4;
 
         intr_on();
-        printf("sys call. \n");
+        syscall();
     }else if ((which_dev = devintr()) != 0){
         // known source
 

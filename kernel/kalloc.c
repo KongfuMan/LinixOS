@@ -18,9 +18,11 @@ struct run{
     struct run *next;
 };
 
+// manages a list of physical page frames
 struct {
     //TODO: spin lock to protect
     struct run *freelist;
+    int ref_count[PFCOUNT];
 }kmem;
 
 void

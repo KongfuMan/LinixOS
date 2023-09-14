@@ -39,6 +39,7 @@ void kvminithart(void);
 int mappages(pagetable_t, uint64, uint64, uint64, int);
 pagetable_t uvmcreate(void);
 void uvmfirst(pagetable_t, uchar *, uint);
+void uvmcopy(pagetable_t, pagetable_t, uint64);
 pte_t * walk(pagetable_t pgtable, uint64 va, int alloc);
 
 //proc.c
@@ -51,6 +52,7 @@ struct cpu* current_cpu();
 struct proc* current_proc(void);
 void sleep(void*);
 void sched(void);
+pid_t fork(void);
 
 //trap.c
 void trapinit(void);
@@ -74,3 +76,8 @@ void virtio_disk_intr(void);
 
 // bio.c
 void binit(void);
+
+// syscall.c
+void syscall(void);
+
+#define NELEM(x) (sizeof(x)/sizeof((x)[0]))
