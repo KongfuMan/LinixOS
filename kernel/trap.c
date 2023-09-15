@@ -49,6 +49,30 @@ void usertrap(){
 
         intr_on();
         syscall();
+    }else if(scause == 15){ //store page fault
+        // get user pagetable and accessed `va` by stval
+        uint64 va = r_stval();
+
+        // get `oldpa` mapped by `va`
+        pte_t *pte = walk(current_proc()->pagetable, va, 0);
+        uint64 old_pa = PTE2PA(*pte);
+        decr_ref((void*)old_pa);
+
+        // clear PTE_COW and set PTE_W bit
+        int flag = PTE_FLAGS(*pte);
+        flag |= PTE_W;
+        flag &= ~PTE_COW;
+        if (get_ref((void*)old_pa) == 1){
+            
+        }
+
+        // alloc a physical page `newpa`, copy data from oldpa to newpa
+        uint64 new_pa = (uint64)kalloc();
+        memmove((void*) new_pa, (void*)old_pa, PGSIZE);
+
+        // map `va` to physical page
+        mappages(p->pagetable, va, PGSIZE, new_pa, flag);
+    
     }else if ((which_dev = devintr()) != 0){
         // known source
 

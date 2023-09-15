@@ -51,6 +51,10 @@ kfree(void* pa){
         panic("kfree");
     }
 
+    if (get_ref(pa) != 0){
+        panic("kfree: cannot free a physical page with non-zero ref count");
+    }
+
     memset(pa, 0, PGSIZE);
 
     r = (struct run*)pa;
