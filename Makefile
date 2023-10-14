@@ -24,11 +24,11 @@ OBJS = \
     $K/syscall.o \
 	$K/exec.o \
 	$K/sysfile.o \
+	$K/bio.o \
+	$K/sleeplock.o \
 #   $K/sysproc.o \
-#   $K/bio.o \
 #   $K/fs.o \
 #   $K/log.o \
-#   $K/sleeplock.o \
 #   $K/file.o \
 #   $K/pipe.o \
 
@@ -38,7 +38,7 @@ OBJS_KCSAN = \
   $K/uart.o \
   $K/console.o \
   $K/printf.o \
-#   $K/spinlock.o
+  $K/spinlock.o
 
 # ifdef KCSAN
 # OBJS_KCSAN += \

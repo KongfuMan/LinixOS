@@ -1,5 +1,5 @@
-struct lock{
-    int locked;
-    struct cpu cpu;
+struct spinlock{
+    uint locked;
+    struct cpu* cpu;
     char* name;
-}
+};

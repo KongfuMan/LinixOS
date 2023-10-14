@@ -1,6 +1,22 @@
-void acquire(struct lock *lk){
+
+#include "types.h"
+#include "param.h"
+#include "memlayout.h"
+#include "spinlock.h"
+#include "riscv.h"
+#include "proc.h"
+#include "defs.h"
+
+
+void initlock(struct spinlock *lk, char *name){
+    lk->locked = 0;
+    lk->name = name;
+    lk->cpu = 0;
+}
+
+void acquire(struct spinlock *lk){
     push_off();
-    if (!holding(lk)){
+    if (holding(lk)){
         panic("acquire: already held the lock");
     }
 
@@ -9,7 +25,7 @@ void acquire(struct lock *lk){
     __sync_synchronize();
 }
 
-void release(struct lock *lk){
+void release(struct spinlock *lk){
     if (!holding(lk)){
         panic("release: not hold lock");
     }
@@ -27,11 +43,11 @@ void push_off(){
     int old = intr_get(); //get current interrupt status
     intr_off();
     struct cpu *curr_cpu = current_cpu();
-    if (curr_cpu->off == 0){
+    if (curr_cpu->noff == 0){
         curr_cpu->intena = old;
     }
     
-    curr_cpu->off += 1;
+    curr_cpu->noff += 1;
 }
 
 void pop_off(){
@@ -41,17 +57,17 @@ void pop_off(){
 
     struct cpu *curr_cpu = current_cpu();
 
-    if (curr_cpu->off < 1){
+    if (curr_cpu->noff < 1){
         panic("pop_off");
     }
 
-    curr_cpu->off -= 1;
-    if (curr_cpu->off == 0 && curr_cpu->intena){
+    curr_cpu->noff -= 1;
+    if (curr_cpu->noff == 0 && curr_cpu->intena){
         intr_on();
     }
 }
 
-int holding(struct lock *lk){
+int holding(struct spinlock *lk){
     if (lk->locked && lk->cpu == current_cpu()){
         return 1;
     }

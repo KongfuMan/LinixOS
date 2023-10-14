@@ -1,10 +1,12 @@
 #include "param.h"
 #include "types.h"
 #include "riscv.h"
+#include "spinlock.h"
 #include "proc.h"
 #include "fs.h"
 #include "buf.h"
 #include "defs.h"
+#include "stat.h"
 
 void check_page_content(void* pa, int expected){
     char* cpg = (char*)pa;
@@ -24,6 +26,28 @@ void test_alloc_dealloc(){
     memset(pg, 20, PGSIZE);
     check_page_content(pg, 20);
     kfree(pg);
+}
+
+void test_buf_rw(){
+    // uint dev = T_FILE;
+    // uint blockno = 100;
+    // uint nbuf = NBUF;
+    // if (nbuf){};
+    
+    // for (int i = 100; i < 200; i++){
+    //     blockno = i;
+    //     struct buf *b = bread(dev, blockno);
+    //     for (int i = 0; i < BSIZE; i++){
+    //         b->data[i] = 'a';
+    //     }
+    //     bwrite(b);
+    //     brelease(b);
+    // }
+    
+    // struct buf* bnew = bread(dev, blockno);
+    // if (bnew->dev){
+
+    // }
 }
 
 void test_virtio_rw(){
@@ -55,10 +79,13 @@ void main(){
         trapinithart();     // install kernel trap vector
         plicinit();         // set up interrupt controller
         plicinithart();     // ask PLIC for device interrupts
-        // binit();         // buffer cache
+        binit();            // buffer
         // iinit();         // inode table
         // fileinit();      // file table
         virtio_disk_init(); // emulated hard disk
+        test_buf_rw();
+        // pci_init();      // pci initialize
+        // sockinit();      // network init
         userinit();         // first user process
         __sync_synchronize();
         starting = 0;

@@ -2,6 +2,7 @@
 #include "param.h"
 #include "memlayout.h"
 #include "riscv.h"
+#include "spinlock.h"
 #include "proc.h"
 #include "fs.h"
 #include "buf.h"
@@ -212,9 +213,27 @@ void userinit(void){
    }
 }
 
-// switch from proc kernel
+// current proc yield and switch to scheduler.
+// sechduler will find next runnable proc to context switch
 void sched(){
+    int intena;
+    struct proc* p = current_proc();
+
+    if(!holding(&p->lock))
+        panic("sched p->lock");
     
+    if (current_cpu()->noff != 1) // interupt turned off for only once
+        panic("sched locks");
+
+    if(p->state == RUNNING)
+        panic("sched running");
+
+    if(intr_get())
+        panic("sched interruptible");
+
+    intena = current_cpu()->intena;   // intr will be enabled in scheduler, so should restore after swtch return.
+    swtch(&p->context, &current_cpu()->context);
+    current_cpu()->intena = intena;
 }
 
 void yield(void){
@@ -223,8 +242,18 @@ void yield(void){
     sched();
 }
 
-void sleep(void* chan){
+void sleep(void* chan, struct spinlock *lk){
+    struct proc *p = current_proc();
+
+    acquire(&p->lock);
+    release(lk);
+    p->chan = chan;
+    p->state = SLEEPING;
     sched();
+    p->state = RUNNABLE;
+    p->chan = 0;
+    release(&p->lock);
+    acquire(lk);
 }
 
 // Copy on write fork
@@ -242,3 +271,14 @@ pid_t fork(){
     return 0;
 }
 
+// wake up all sleeping proc
+void wakeup(void* chan){
+    struct proc *p;
+    for (p = proc; p < proc + NPROC; p++){
+        acquire(&p->lock);
+        if (p->chan == chan){
+            p->state = RUNNABLE;
+        }
+        release(&p->lock);
+    }
+}

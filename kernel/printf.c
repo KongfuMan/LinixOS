@@ -6,8 +6,8 @@
 
 #include "param.h"
 #include "types.h"
-// #include "spinlock.h"
-// #include "sleeplock.h"
+#include "spinlock.h"
+#include "sleeplock.h"
 #include "fs.h"
 // #include "file.h"
 #include "memlayout.h"

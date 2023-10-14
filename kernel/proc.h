@@ -23,7 +23,7 @@ struct cpu {
   struct proc *proc;          // The process running on this cpu, or null.
   struct context context;     // swtch() here to enter scheduler().
   int noff;                   // Depth of push_off() nesting.
-  int intena;                 // Were interrupts enabled before push_off()?
+  int intena;                 // Were interrupts enabled before initial push_off()?
 };
 
 extern struct cpu cpus[NCPU];
@@ -83,7 +83,7 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
-//   struct spinlock lock;
+  struct spinlock lock; //spinlock to protect fields
 
   // p->lock must be held when using these:
   enum procstate state;        // Process state
@@ -95,7 +95,7 @@ struct proc {
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process
 
-  // these are private to the process, so p->lock need not be held.
+  // these are private to the process, so p->lock need not to be held.
   uint64 kstack;               // Virtual address of kernel stack
   uint64 sz;                   // Size of process memory (bytes)
   pagetable_t pagetable;       // User page table

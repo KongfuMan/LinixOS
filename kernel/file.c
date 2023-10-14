@@ -1,0 +1,10 @@
+
+
+
+void fread(){
+
+}
+
+void fwrite(){
+    
+}

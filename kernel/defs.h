@@ -2,6 +2,9 @@
 
 struct proc;
 struct cpu;
+struct lock;
+struct spinlock;
+struct buf;
 
 // console.c
 void consoleinit(void);
@@ -54,9 +57,12 @@ void userinit(void);
 void scheduler(void);
 struct cpu* current_cpu();
 struct proc* current_proc(void);
-void sleep(void*);
+void sleep(void*, struct spinlock*);
 void sched(void);
 pid_t fork(void);
+void wakeup(void*);
+void push_off(void);
+void pop_off(void);
 
 //trap.c
 void trapinit(void);
@@ -80,8 +86,19 @@ void virtio_disk_intr(void);
 
 // bio.c
 void binit(void);
+struct buf *bread(uint, uint);
+void brelease(struct buf*);
+void bwrite(struct buf*);
+void bpin(struct buf*);
+void bunpin(struct buf*);
 
 // syscall.c
 void syscall(void);
+
+// spinlock.c
+void initlock(struct spinlock*, char*);
+void acquire(struct spinlock*);
+void release(struct spinlock*);
+int holding(struct spinlock*);
 
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

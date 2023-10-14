@@ -1,4 +1,5 @@
 // file operations
 
-void fread();
-void fwrite();
+struct inode{
+    
+}

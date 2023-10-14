@@ -1,6 +1,7 @@
 #include "param.h"
 #include "types.h"
 #include "riscv.h"
+#include "spinlock.h"
 #include "proc.h"
 #include "fs.h"
 #include "buf.h"
@@ -114,6 +115,7 @@ int devintr(){
             // printf("Uart device intr. \n");
         } else if(irq == VIRTIO0_IRQ){
             printf("Virtio device intr. \n");
+            virtio_disk_intr();
         } else if(irq){
             printf("unexpected interrupt irq=%d\n", irq);
         }
@@ -129,7 +131,7 @@ int devintr(){
     }
 
     if(scause == 0x8000000000000001L){
-        printf("S-mode software interrupt from M-mode timervec. \n");
+        // printf("S-mode software interrupt from M-mode timervec. \n");
         // software interrupt from a machine-mode timer interrupt,
         // forwarded by timervec in kernelvec.S.
 
