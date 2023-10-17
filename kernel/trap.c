@@ -115,7 +115,6 @@ int devintr(){
         if(irq == UART0_IRQ){
             // printf("Uart device intr. \n");
         } else if(irq == VIRTIO0_IRQ){
-            printf("Virtio device intr. \n");
             virtio_disk_intr();
         } else if(irq){
             printf("unexpected interrupt irq=%d\n", irq);
