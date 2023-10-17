@@ -10,6 +10,7 @@
 #include "memlayout.h"
 #include "riscv.h"
 #include "spinlock.h"
+#include "sleeplock.h"
 #include "proc.h"
 #include "fs.h"
 #include "buf.h"
@@ -285,7 +286,6 @@ virtio_disk_rw(struct buf *b, int write)
 
   *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // value is queue number
 
-  intr_on();
   // Wait for virtio_disk_intr() to say request has finished.
   while(b->disk == 1) {
     // sleep(b, &disk.vdisk_lock);
@@ -324,7 +324,7 @@ virtio_disk_intr()
 
     struct buf *b = disk.info[id].b;
     b->disk = 0;   // disk is done with buf
-    // wakeup(b);
+    wakeup(b);
 
     disk.used_idx += 1;
   }
