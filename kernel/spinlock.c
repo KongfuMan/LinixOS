@@ -15,7 +15,7 @@ void initlock(struct spinlock *lk, char *name){
 }
 
 void acquire(struct spinlock *lk){
-    push_off();
+    push_off(); // disable intr of current hart 
     if (holding(lk)){
         panic("acquire: already held the lock");
     }
@@ -23,6 +23,7 @@ void acquire(struct spinlock *lk){
     while(__sync_lock_test_and_set(&(lk->locked), 1) == 1){}
 
     __sync_synchronize();
+    lk->cpu = current_cpu();
 }
 
 void release(struct spinlock *lk){
@@ -34,7 +35,14 @@ void release(struct spinlock *lk){
 
     __sync_synchronize();
 
-     __sync_lock_release(&lk->locked);
+    // Release the lock, equivalent to lk->locked = 0.
+    // This code doesn't use a C assignment, since the C standard
+    // implies that an assignment might be implemented with
+    // multiple store instructions.
+    // On RISC-V, sync_lock_release turns into an atomic swap:
+    //   s1 = &lk->locked
+    //   amoswap.w zero, zero, (s1)
+    __sync_lock_release(&lk->locked);
      
     pop_off();
 }
