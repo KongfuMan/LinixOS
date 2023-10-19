@@ -26,10 +26,10 @@ OBJS = \
 	$K/sysfile.o \
 	$K/bio.o \
 	$K/sleeplock.o \
+	$K/fs.o \
+	$K/file.o \
 #   $K/sysproc.o \
-#   $K/fs.o \
 #   $K/log.o \
-#   $K/file.o \
 #   $K/pipe.o \
 
 

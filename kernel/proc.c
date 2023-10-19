@@ -79,7 +79,15 @@ void proc_mapstacks(pagetable_t kpgtbl){
     }
 }
 
+static int first_proc = 1;
+
 void forkret(){
+    //init file system
+    if (first_proc == 1){
+        fsinit(ROOTDEV);
+        first_proc = 0;
+    }
+
     usertrapret();
 }
 

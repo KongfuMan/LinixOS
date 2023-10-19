@@ -15,10 +15,6 @@
 #include "fs.h"
 #include "buf.h"
 #include "defs.h"
-
-// #include "spinlock.h"
-// #include "sleeplock.h"
-
 #include "virtio.h"
 
 // the address of virtio mmio register r.
@@ -59,7 +55,7 @@ static struct disk {
   // one-for-one with descriptors, for convenience.
   struct virtio_blk_req ops[NUM];
   
-  // struct spinlock vdisk_lock;
+  struct spinlock vdisk_lock;
   
 } disk;
 
@@ -68,7 +64,7 @@ virtio_disk_init(void)
 {
   uint32 status = 0;
 
-  // initlock(&disk.vdisk_lock, "virtio_disk");
+  initlock(&disk.vdisk_lock, "virtio_disk");
 
   if(*R(VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976 ||
      *R(VIRTIO_MMIO_VERSION) != 2 ||
@@ -286,10 +282,13 @@ virtio_disk_rw(struct buf *b, int write)
 
   *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // value is queue number
 
+  intr_on(); // TODO: remove after testing the buf read/write
+  
   // Wait for virtio_disk_intr() to say request has finished.
   while(b->disk == 1) {
     // sleep(b, &disk.vdisk_lock);
   }
+  intr_off(); // TODO: remove after testing the buf read/write
 
   disk.info[idx[0]].b = 0;
   free_chain(idx[0]);
@@ -324,7 +323,7 @@ virtio_disk_intr()
 
     struct buf *b = disk.info[id].b;
     b->disk = 0;   // disk is done with buf
-    wakeup(b);
+    // wakeup(b);
 
     disk.used_idx += 1;
   }
