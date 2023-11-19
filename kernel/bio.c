@@ -152,7 +152,7 @@ struct buf *find_available(uint dev, uint blockno){
     
     // evict a victim(least recently used) from lru replacer
     if (bcache.lru->next_lru != bcache.lru){
-        b = bcache.lru->prev_lru;
+        b = bcache.lru->prev_lru; // evict the oldest
         remove_from_lru(b);
         remove_from_hashqueue(b);
         bpin(b);
@@ -172,6 +172,7 @@ static struct buf *bget(uint dev, uint blockno){
             remove_from_lru(b);
         }
         bpin(b);
+        b->dirty = 1;
         return b;
     }
 
@@ -183,6 +184,7 @@ static struct buf *bget(uint dev, uint blockno){
     
     b->dev = dev;
     b->blockno = blockno;
+    b->dirty = 1;
     put_last_hashqueue(b);
     return b;
 }
@@ -216,10 +218,6 @@ void brelse(struct buf *b){
         // add to lru to reuse
         put_last_lru(b);
     }
-}
-
-void bfree(struct buf *b){
-    
 }
 
 void bpin(struct buf *b){

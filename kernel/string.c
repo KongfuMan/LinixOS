@@ -1,22 +1,31 @@
 #include "types.h"
 
-// set n int values start from physical addr `dst`
-void* memset(void* dst, int value, uint len){
-    char *cdst = (char *) dst;
-    for(int i = 0; i < len; i++){
-        cdst[i] = value;
-    }
-    return dst;
+void*
+memset(void *dst, int c, uint n)
+{
+  char *cdst = (char *) dst;
+  int i;
+  for(i = 0; i < n; i++){
+    cdst[i] = c;
+  }
+  return dst;
 }
 
-// void* memmove(void* dst, const void* src, uint len){
-//     char *cdst = (char *) dst;
-//     char *csrc = (char *) src;
-//     for(int i = 0; i < len; i++){
-//         cdst[i] = csrc[i];
-//     }
-//     return dst;
-// }
+int
+memcmp(const void *v1, const void *v2, uint n)
+{
+  const uchar *s1, *s2;
+
+  s1 = v1;
+  s2 = v2;
+  while(n-- > 0){
+    if(*s1 != *s2)
+      return *s1 - *s2;
+    s1++, s2++;
+  }
+
+  return 0;
+}
 
 void*
 memmove(void *dst, const void *src, uint n)
@@ -41,14 +50,57 @@ memmove(void *dst, const void *src, uint n)
   return dst;
 }
 
-char* safestrcpy(char *s, const char *t, int n){
-    char *os;
+// memcpy exists to placate GCC.  Use memmove.
+void*
+memcpy(void *dst, const void *src, uint n)
+{
+  return memmove(dst, src, n);
+}
 
-    os = s;
-    if(n <= 0)
-        return os;
-    while(--n > 0 && (*s++ = *t++) != 0)
+int
+strncmp(const char *p, const char *q, uint n)
+{
+  while(n > 0 && *p && *p == *q)
+    n--, p++, q++;
+  if(n == 0)
+    return 0;
+  return (uchar)*p - (uchar)*q;
+}
+
+char*
+strncpy(char *s, const char *t, int n)
+{
+  char *os;
+
+  os = s;
+  while(n-- > 0 && (*s++ = *t++) != 0)
     ;
-    *s = 0;
+  while(n-- > 0)
+    *s++ = 0;
+  return os;
+}
+
+// Like strncpy but guaranteed to NUL-terminate.
+char*
+safestrcpy(char *s, const char *t, int n)
+{
+  char *os;
+
+  os = s;
+  if(n <= 0)
     return os;
+  while(--n > 0 && (*s++ = *t++) != 0)
+    ;
+  *s = 0;
+  return os;
+}
+
+int
+strlen(const char *s)
+{
+  int n;
+
+  for(n = 0; s[n]; n++)
+    ;
+  return n;
 }

@@ -207,7 +207,7 @@ void userinit(void){
     p->trapframe->sp  = PGSIZE;  // user stack pointer
 
     safestrcpy(p->name, "initcode", sizeof(p->name));
-    // p->cwd = namei("/");
+    p->cwd = namei("/");
 
     p->state = RUNNABLE;
 
@@ -290,4 +290,23 @@ void wakeup(void* chan){
         }
         release(&p->lock);
     }
+}
+
+
+// copy kernel to either a user address, or kernel address,
+// depending on usr_dst.
+// Returns 0 on success, -1 on error.
+int
+either_copyout(int user_dst, uint64 dst, void *src, uint64 len){
+    if (user_dst){
+        return copyout(current_proc()->pagetable, dst, (char*)src, len);
+    }
+    memmove((char *)dst, src, len);
+    return 0;
+}
+
+// copy mem from user to kernel space
+int
+either_copyin(void *dst, int user_src, uint64 src, uint64 len){
+    return -1;
 }

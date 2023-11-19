@@ -7,6 +7,7 @@
 #include "fs.h"
 #include "buf.h"
 #include "defs.h"
+#include "file.h"
 #include "stat.h"
 
 void check_page_content(void* pa, int expected){
@@ -44,7 +45,6 @@ void test_buf_w(){
         blockno = i;
         b = bread(dev, blockno);
         fill_data(b, content);
-        b->dirty = 1;
         bwrite(b);
         brelse(b);
         content++;
@@ -72,13 +72,16 @@ void test_buf_r(){
 void test_alloc_inode(){
     fsinit(1);
     uint dev = 1;
-    short type = 10;
-    struct inode *ip = ialloc(dev, type);
-    ip = ialloc(1, 10);
-    ip = ialloc(1, 10);
-    ip = ialloc(1, 10);
-    if (ip){
-
+    uint bn = balloc(dev);
+    bfree(dev, bn);
+    for (int i = 0; i < 10; i++){
+        uint actual_bn = balloc(dev);
+        bfree(dev, actual_bn);
+        // // struct inode *ip = ialloc(dev, type);
+        // // ip = ialloc(1, 10);
+        // // ip = ialloc(1, 10);
+        // // ip = ialloc(1, 10);
+        assert (bn == actual_bn);
     }
 }
 
@@ -104,7 +107,7 @@ void main(){
         // fileinit();      // file table
         virtio_disk_init(); // emulated hard disk
         // test_buf_r();
-        // test_alloc_inode();
+        test_alloc_inode();
         // pci_init();      // pci initialize
         // sockinit();      // network init
         userinit();         // first user process

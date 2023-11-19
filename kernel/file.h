@@ -1,5 +1,5 @@
 // an open file
-struct file{
+struct file {
     int ref;
     uint offset;
     struct inode *ip;  // for device
@@ -13,7 +13,7 @@ struct file{
 // node that indexing a bunch of blocks for a file. It represents a continuous logic disk space of a file.
 // inode represent the in-memory data structure. 
 // dinode reprensets the deserialization schema of inode on disk 
-struct inode{
+struct inode {
     // immutable fields, thus thread safe
     uint dev;               // device number
     uint inum;              // inode number

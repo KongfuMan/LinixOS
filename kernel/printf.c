@@ -125,3 +125,10 @@ void panic(char *s)
 //   initlock(&pr.lock, "pr");
 //   pr.locking = 1;
 // }
+
+void
+assert(uint expr){
+    if (expr == 0){
+        panic("assertion failed.");
+    }
+}

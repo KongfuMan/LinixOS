@@ -28,6 +28,7 @@ OBJS = \
 	$K/sleeplock.o \
 	$K/fs.o \
 	$K/file.o \
+	$K/inode.o \
 #   $K/sysproc.o \
 #   $K/log.o \
 #   $K/pipe.o \
@@ -144,28 +145,28 @@ $U/initcode: $U/initcode.S
 tags: $(OBJS) _init
 	etags *.S *.c
 
-# ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
+ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
 
 # ifeq ($(LAB),$(filter $(LAB), lock))
 # ULIB += $U/statistics.o
 # endif
 
-# _%: %.o $(ULIB)
-# 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
-# 	$(OBJDUMP) -S $@ > $*.asm
-# 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+_%: %.o $(ULIB)
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+	$(OBJDUMP) -S $@ > $*.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
-# $U/usys.S : $U/usys.pl
-# 	perl $U/usys.pl > $U/usys.S
+$U/usys.S : $U/usys.pl
+	perl $U/usys.pl > $U/usys.S
 
-# $U/usys.o : $U/usys.S
-# 	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
+$U/usys.o : $U/usys.S
+	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
 
-# $U/_forktest: $U/forktest.o $(ULIB)
-# 	# forktest has less library code linked in - needs to be small
-# 	# in order to be able to max out the proc table.
-# 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
-# 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
+$U/_forktest: $U/forktest.o $(ULIB)
+	# forktest has less library code linked in - needs to be small
+	# in order to be able to max out the proc table.
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
+	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 	gcc $(XCFLAGS) -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
@@ -177,11 +178,11 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 # .PRECIOUS: %.o
 
 UPROGS=\
+ 	$U/_init\
 # 	$U/_cat\
 # 	$U/_echo\
 # 	$U/_forktest\
 # 	$U/_grep\
-# 	$U/_init\
 # 	$U/_kill\
 # 	$U/_ln\
 # 	$U/_ls\

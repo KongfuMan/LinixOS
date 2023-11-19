@@ -76,7 +76,7 @@ pte_t* dowalk(pagetable_t pagetable, uint64 va, int alloc, int* count){
         } else {
             if(!alloc || (pagetable = (pagetable_t)kalloc()) == 0)
                 return 0;
-      
+            // count of new pte created for debug purpose
             *count = (*count) + 1;
             memset(pagetable, 0, PGSIZE);
             *pte = PA2PTE(pagetable) | PTE_V;
@@ -90,6 +90,31 @@ pte_t* dowalk(pagetable_t pagetable, uint64 va, int alloc, int* count){
 pte_t * walk(pagetable_t pgtable, uint64 va, int alloc){
     int count = 0;
     return dowalk(pgtable, va, alloc, &count);
+}
+
+// Look up a virtual address `va`, return the physical address,
+// or 0 if not yet mapped in page table.
+// Can only be used to look up user pages.
+uint64
+walkaddr(pagetable_t pagetable, uint64 va){
+    pte_t *pte;
+    uint64 pa;
+
+    if(va >= MAXVA)
+        return 0;
+
+    pte = walk(pagetable, va, 0);
+    if(pte == 0)
+        return 0;
+
+    if((*pte & PTE_V) == 0)
+        return 0;
+
+    if((*pte & PTE_U) == 0)
+        return 0;
+
+    pa = PTE2PA(*pte);
+    return pa;
 }
 
 // map `va` to `pa` in 3-level pgtable
@@ -210,5 +235,39 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 size){
 
 err:
     uvmunmap(new, 0, va / PGSIZE, 0);
+    return -1;
+}
+
+// Copy from kernel to proc user space.
+// Copy `len` bytes starting from `src` to virtual address `dstva` in a given page table.
+// Return 0 on success, -1 on error.
+int
+copyout(pagetable_t pgtable, uint64 dstva, char *src, uint64 len){
+    uint64 n = 0, va0 = 0, pa0 = 0;
+    while(len > 0){
+        va0 = PGROUNDDOWN(dstva);
+        pa0 = walkaddr(pgtable, va0);   // same as the kernel va
+
+        if (!pa0){
+            return -1;
+        }
+
+        n = min(PGSIZE - (dstva - va0), len); // n is actual size copied
+        memmove((void *)(pa0 + (dstva - va0)), src, n);
+        len -= n;
+        src += n;
+        dstva = PGSIZE + va0;
+    }
+
+    return 0;
+}
+
+int
+copyin(pagetable_t pgtable, char *, uint64, uint64){
+    return -1;
+}
+
+int
+copyinstr(pagetable_t pgtable, char *, uint64, uint64){
     return -1;
 }

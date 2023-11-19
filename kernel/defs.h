@@ -22,17 +22,23 @@ struct inode*   ialloc(uint, short);
 struct inode*   idup(struct inode*);
 void            iinit();
 void            ilock(struct inode*);
+int             namecmp(const char*, const char*);
+struct inode*   namei(char*);
+struct inode*   nameiparent(char*, char*);
+
+//inode.c
 void            iput(struct inode*);
 void            iunlock(struct inode*);
 void            iunlockput(struct inode*);
 void            iupdate(struct inode*);
-int             namecmp(const char*, const char*);
-struct inode*   namei(char*);
-struct inode*   nameiparent(char*, char*);
 int             readi(struct inode*, int, uint64, uint, uint);
 void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, int, uint64, uint, uint);
 void            itrunc(struct inode*);
+
+// function internal to fs.c, declared here just for test, remove
+uint balloc(uint dev);
+void bfree(int dev, uint blockno);
 
 // file.c
 struct file*    filealloc(void);
@@ -69,6 +75,7 @@ char* strncpy(char*, const char*, int);
 // printf.c
 void printf(char*, ...);
 void panic(char*);
+void assert(uint);
 
 // vm.c
 void kvminit(void);
@@ -80,6 +87,9 @@ pagetable_t uvmcreate(void);
 void uvmfirst(pagetable_t, uchar *, uint);
 int uvmcopy(pagetable_t, pagetable_t, uint64);
 pte_t * walk(pagetable_t pgtable, uint64 va, int alloc);
+int copyout(pagetable_t, uint64, char *, uint64);
+int copyin(pagetable_t, char *, uint64, uint64);
+int copyinstr(pagetable_t, char *, uint64, uint64);
 
 //proc.c
 void proc_mapstacks(pagetable_t);
@@ -95,6 +105,8 @@ pid_t fork(void);
 void wakeup(void*);
 void push_off(void);
 void pop_off(void);
+int either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
+int either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 
 //trap.c
 void trapinit(void);
@@ -123,6 +135,7 @@ void brelse(struct buf*);
 void bwrite(struct buf*);
 void bpin(struct buf*);
 void bunpin(struct buf*);
+uint bmap(struct inode* ip, int bn);
 
 // syscall.c
 void syscall(void);

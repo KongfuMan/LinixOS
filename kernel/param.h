@@ -25,4 +25,5 @@
 #endif
 #define MAXPATH      128   // maximum file path name
 
+#define min(a, b) ((a) < (b) ? (a) : (b))
 
