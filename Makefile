@@ -104,7 +104,7 @@ CFLAGS += -O0
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 # physical memory size
-DRAM_SIZE := 128
+DRAM_SIZE := 256
 CFLAGS += -DDRAM_SIZE=$(DRAM_SIZE)
 
 # ifeq ($(LAB),net)
