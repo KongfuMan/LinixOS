@@ -179,7 +179,7 @@ free_desc(int i)
   disk.desc[i].flags = 0;
   disk.desc[i].next = 0;
   disk.free[i] = 1;
-  // wakeup(&disk.free[0]);
+  wakeup(&disk.free[0]);
 }
 
 // free a chain of descriptors.
@@ -219,7 +219,7 @@ virtio_disk_rw(struct buf *b, int write)
 
   uint64 sector = b->blockno * (BSIZE / 512);
 
-  // acquire(&disk.vdisk_lock);
+  acquire(&disk.vdisk_lock);
 
   // the spec's Section 5.2 says that legacy block operations use
   // three descriptors: one for type/reserved/sector, one for the
@@ -231,7 +231,7 @@ virtio_disk_rw(struct buf *b, int write)
     if(alloc3_desc(idx) == 0) {
       break;
     }
-    // sleep(&disk.free[0], &disk.vdisk_lock);
+    sleep(&disk.free[0], &disk.vdisk_lock);
   }
 
   // format the three descriptors.
@@ -281,25 +281,22 @@ virtio_disk_rw(struct buf *b, int write)
   __sync_synchronize();
 
   *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // value is queue number
-
-  intr_on(); // TODO: remove after testing the buf read/write
   
   // Wait for virtio_disk_intr() to say request has finished.
   while(b->disk == 1) {
-    // sleep(b, &disk.vdisk_lock);
+    sleep(b, &disk.vdisk_lock);
   }
-  intr_off(); // TODO: remove after testing the buf read/write
 
   disk.info[idx[0]].b = 0;
   free_chain(idx[0]);
 
-  // release(&disk.vdisk_lock);
+  release(&disk.vdisk_lock);
 }
 
 void
 virtio_disk_intr()
 {
-  // acquire(&disk.vdisk_lock);
+  acquire(&disk.vdisk_lock);
 
   // the device won't raise another interrupt until we tell it
   // we've seen this interrupt, which the following line does.
@@ -323,10 +320,10 @@ virtio_disk_intr()
 
     struct buf *b = disk.info[id].b;
     b->disk = 0;   // disk is done with buf
-    // wakeup(b);
+    wakeup(b);
 
     disk.used_idx += 1;
   }
 
-  // release(&disk.vdisk_lock);
+  release(&disk.vdisk_lock);
 }
