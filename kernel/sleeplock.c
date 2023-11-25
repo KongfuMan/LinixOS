@@ -37,3 +37,12 @@ void releasesleep(struct sleeplock *sleeplk){
     wakeup(sleeplk);
     release(&sleeplk->lk);
 }
+
+// Return if a sleep lock is being held by current process
+int holdingsleep(struct sleeplock *sleeplk){
+    int ret = 0;
+    acquire(&sleeplk->lk);
+    ret = sleeplk->locked && sleeplk->pid == current_proc()->pid;
+    release(&sleeplk->lk);
+    return ret;
+}

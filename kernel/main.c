@@ -107,7 +107,7 @@ void main(){
         // fileinit();      // file table
         virtio_disk_init(); // emulated hard disk
         // test_buf_r();
-        test_alloc_inode();
+        // test_alloc_inode();
         // pci_init();      // pci initialize
         // sockinit();      // network init
         userinit();         // first user process

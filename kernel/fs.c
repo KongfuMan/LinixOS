@@ -29,17 +29,16 @@ void fsinit(int dev){
     }
 }
 
-
 // Zero a block.
 static void
 bzero(int dev, int blockno)
 {
-  struct buf *bp;
+    struct buf *bp;
 
-  bp = bread(dev, blockno);
-  memset(bp->data, 0, BSIZE);
-  bwrite(bp);
-  brelse(bp);
+    bp = bread(dev, blockno);
+    memset(bp->data, 0, BSIZE);
+    bwrite(bp);
+    brelse(bp);
 }
 
 // alloc a free block.
@@ -154,34 +153,34 @@ namecmp(const char *s, const char *t)
 //   skipelem("a", name) = "", setting name = "a"
 //   skipelem("", name) = skipelem("////", name) = 0
 //
-// static char*
-// skipelem(char *path, char *name){
-//     char *s;
-//     int len;
+static char*
+skipelem(char *path, char *name){
+    char *s;
+    int len;
 
-//     while(*path == '/'){
-//         path++;
-//     }
-//     if(*path == 0){
-//         return 0;
-//     }
-//     s = path;
-//     while(*path != '/' && *path != 0){
-//         path++;
-//     }
-//     len = path - s;
-//     if(len >= DIRSIZE){
-//         memmove(name, s, DIRSIZE);
-//     }
-//     else {
-//         memmove(name, s, len);
-//         name[len] = 0;
-//     }
-//     while(*path == '/'){
-//         path++;
-//     }
-//     return path;
-// }
+    while(*path == '/'){
+        path++;
+    }
+    if(*path == 0){
+        return 0;
+    }
+    s = path;
+    while(*path != '/' && *path != 0){
+        path++;
+    }
+    len = path - s;
+    if(len >= DIRSIZE){
+        memmove(name, s, DIRSIZE);
+    }
+    else {
+        memmove(name, s, len);
+        name[len] = 0;
+    }
+    while(*path == '/'){
+        path++;
+    }
+    return path;
+}
 
 // Write a new directory entry (name, inum) into the directory dp.
 // Returns 0 on success, -1 on failure (e.g. out of disk blocks).
@@ -195,7 +194,30 @@ dirlink(struct inode *dp, char *name, uint inum){
 // Look for a directory entry in a directory.
 // If found, set *poff to byte offset of entry.
 struct inode*
-dirlookup(struct inode*, char* path, uint* poff);
+dirlookup(struct inode* ip, char* path, uint* poff){
+    uint off; //, inum;
+    struct dirent de;
+
+    if(ip->type != T_DIR){
+        panic("dirlookup not DIR");
+    }
+
+    // loop through inode dirent [0 , ip->size]
+    for (off = 0; off < ip->size; off += sizeof(de)){
+        if(readi(ip, 0, (uint64)&de, off, sizeof(de)) != sizeof(de)){
+            panic("dirlookup");
+        }
+        if (namecmp(path, de.name) == 0){
+            // found a matching dirent
+            if(poff){
+                *poff = off;
+            }
+            return iget(ip->dev, de.inum);
+        }
+    }
+
+    return 0;
+}
 
 // Look up and return the inode for a path name.
 // If parent != 0, return the inode for the parent and copy the final
@@ -203,15 +225,39 @@ dirlookup(struct inode*, char* path, uint* poff);
 // Must be called inside a transaction since it calls iput().
 static struct inode*
 namex(char *path, int nameiparent, char *name){
-    // struct inode *ip;
+    struct inode *ip, *next;
 
-    // if (*path == '/'){
-    //     ip = iget(ROOTDEV, ROOTINO); //
-    // }else{
-    //     ip = idup(current_proc()->cwd);
-    // }
+    if (*path == '/'){
+        ip = iget(ROOTDEV, ROOTINO); //
+    }else{
+        ip = idup(current_proc()->cwd);
+    }
 
-    return 0;
+    while((path = skipelem(path, name)) != 0){
+        ilock(ip);
+        if (ip->type != T_DIR){
+            iunlockput(ip);
+            return 0;
+        }
+        if (nameiparent && *path == '\0'){
+            iunlockput(ip);
+            return ip;
+        }
+        // iterate through blocks of dirent struct indexed by inode
+        if ((next = dirlookup(ip, name, 0)) == 0){
+            // no dirent with name in inode
+            iunlockput(ip);
+            return 0;
+        }
+        iunlockput(ip);
+        ip = next;
+    }
+
+    if(nameiparent){
+        iput(ip);
+        return 0;
+    }
+    return ip;
 }
 
 int

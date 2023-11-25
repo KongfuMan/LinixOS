@@ -43,7 +43,7 @@ struct proc* current_proc(){
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
-void scheduler(void){
+void scheduler(){
     struct proc *p;
     struct cpu *c = current_cpu();
     while(1){
@@ -52,6 +52,7 @@ void scheduler(void){
             intr_on();
         }
         for (p = proc; p < &proc[NPROC]; p++){
+            acquire(&p->lock);
             if (p->state == RUNNABLE){
                 p->state = RUNNING;
                 // `p` will be switched to run on `c`
@@ -62,6 +63,7 @@ void scheduler(void){
                 // switched back to scheduler, reset `c->proc` to `null`
                 c->proc = 0;
             }
+            release(&p->lock);
         }
     }
 }
@@ -82,7 +84,10 @@ void proc_mapstacks(pagetable_t kpgtbl){
 static int first_proc = 1;
 
 void forkret(){
-    //init file system
+    // release because current_proc()->lock was held before context switch in scheduler() func
+    release(&current_proc()->lock);
+
+    // init file system
     if (first_proc == 1){
         fsinit(ROOTDEV);
         first_proc = 0;
@@ -97,7 +102,7 @@ void procinit(){
 
     // TODO: lock
     for(p = proc; p < &proc[NPROC]; p++) {
-        // initlock(&p->lock, "proc");
+        initlock(&p->lock, "proc");
         p->state = UNUSED;
         p->kstack = KSTACK((int) (p - proc));
     }
@@ -115,17 +120,26 @@ proc_pagetable(struct proc *p){
     
     // map user trampoline
     if(mappages(pgtable, TRAMPOLINE, PGSIZE, (uint64)trampoline, PTE_R | PTE_X) < 0){
-        // TODO: remove ptes that might have already been created
+        // TODO: roll back ptes that have already been created
         return 0;
     }
 
     // map user trapframe
     if (mappages(pgtable, TRAPFRAME, PGSIZE, (uint64)p->trapframe, PTE_R | PTE_W) < 0){
-        // TODO: 
+        // TODO: roll back ptes that have already been created
         return 0;
     }
     
     return pgtable;
+}
+
+// Free a process's page table, and free the
+// physical memory it refers to.
+void
+proc_freepagetable(pagetable_t pagetable, uint64 sz){
+    uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+    uvmunmap(pagetable, TRAPFRAME, 1, 0);
+    uvmfree(pagetable, sz);
 }
 
 // allocate an empty proc and do necessary initializatio
@@ -137,11 +151,11 @@ proc_pagetable(struct proc *p){
 struct proc* allocproc(){
     struct proc *p;
     for (p = proc; p < &proc[NPROC]; p++){
-        // TODO: acquire lock
+        acquire(&p->lock);
         if (p->state == UNUSED){
             goto found;
         }else{
-            // TODO: release lock
+            release(&p->lock);
         }
     }
 
@@ -156,7 +170,7 @@ found:
     // Allocate a trapframe page.
     if ((p->trapframe = (struct trapframe*)kalloc()) == 0){
         // TODO: freeproc(p);
-        // release(&p->lock);
+        release(&p->lock);
         return 0;
     }
 
@@ -164,7 +178,7 @@ found:
     p->pagetable = proc_pagetable(p);
     if (p->pagetable == 0){
         // TODO: freeproc(p);
-        // release(&p->lock);
+        release(&p->lock);
         return 0;
     }
 
@@ -211,15 +225,7 @@ void userinit(void){
 
     p->state = RUNNABLE;
 
-    // validate
-   pte_t *pte = walk(p->pagetable, 0, 0);
-   uchar* actualInitCode = (uchar*)PTE2PA(*pte);
-   for (int i = 0; i < sizeof(initcode); i++){
-       if (*actualInitCode != initcode[i]){
-        panic("userinit");
-       }
-       actualInitCode++;
-   }
+   release(&p->lock);
 }
 
 // current proc yield and switch to scheduler.

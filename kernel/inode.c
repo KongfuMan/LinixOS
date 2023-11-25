@@ -68,12 +68,12 @@
 // have locked the inodes involved; this lets callers create
 // multi-step atomic operations.
 //
-// The itable.lock spin-lock protects the allocation of itable
+// The itable.lock (spin-lock) protects the allocation of itable
 // entries. Since ip->ref indicates whether an entry is free,
 // and ip->dev and ip->inum indicate which i-node an entry
 // holds, one must hold itable.lock while using any of those fields.
 //
-// An ip->lock sleep-lock protects all ip-> fields other than ref,
+// An ip->lock (sleep-lock) protects all ip->* fields other than ref,
 // dev, and inum.  One must hold ip->lock in order to
 // read or write that inode's ip->valid, ip->size, ip->type, &c.
 
@@ -84,6 +84,7 @@ struct {
 
 extern struct superblock sb;
 
+// initialzie inode table
 void iinit(){
     // initialize the itable
     initlock(&itable.lock, "itable spin");
@@ -97,7 +98,7 @@ void iinit(){
 // Find the inode with number inum on device dev
 // and return the in-memory copy. Does not lock
 // the inode and does not read it from disk.
-static struct inode*
+struct inode*
 iget(uint dev, uint inum){
     struct inode *ip, *empty;
     acquire(&itable.lock);
@@ -162,8 +163,6 @@ ialloc(uint dev, short type){
     return 0;
 }
 
-/************ inode operations***************/
-
 // Increment reference count for ip.
 // Returns ip to enable ip = idup(ip1) idiom.
 struct inode*
@@ -188,9 +187,9 @@ readi(struct inode *ip, int user_dst, uint64 dst, uint off, uint n){
     }
 
     struct buf *bp;
-    uint tot, sz; // actual bytes read totally, actual bytes read for one iteration
+    uint tot, sz; // actual bytes read totally
     uint blockno, bn;
-    for (tot = 0; tot <= n; tot += sz, off += sz){
+    for (tot = 0; tot < n; tot += sz){
         bn = (uint)(off / BSIZE);
         blockno = bmap(ip, bn);
         bp = bread(ip->dev, blockno);
@@ -198,20 +197,161 @@ readi(struct inode *ip, int user_dst, uint64 dst, uint off, uint n){
             return 0;
         }
 
-        // offset with a block
-        sz = min(BSIZE - off % BSIZE, n);
+        sz = min(BSIZE - off % BSIZE, n); // actual bytes read for one iteration
         either_copyout(user_dst, dst, &bp->data[off % BSIZE], sz);
         dst += sz;
+        off += sz;
     }
     
     return tot;
 }
 
-// void ilock(struct inode*);
-// void iput(struct inode*);
-// void iunlock(struct inode*);
-// void iunlockput(struct inode*);
-// void iupdate(struct inode*);
-// void stati(struct inode*, struct stat*);
-// int writei(struct inode*, int, uint64, uint, uint);
-// void itrunc(struct inode*);
+// write `n` bytes starting from off
+int writei(struct inode* ip, int user_src, uint64 src, uint off, uint n){
+    return 0;
+}
+
+// load inode data from disk if not loaded yet and acquire inode sleep lock
+void ilock(struct inode* ip){
+    struct buf *bp;
+    struct dinode *dip;
+
+    if(ip == 0 || ip->ref < 1){
+        panic("ilock");
+    }
+
+    acquiresleep(&ip->lock);
+
+    if (!ip->valid){ //inode data has not been loaded from disk
+        bp = bread(ip->dev, IBLOCK(ip->inum, sb));
+        dip = (struct dinode*)bp->data + (ip->inum % IPB);
+        ip->type = dip->type;
+        ip->major = dip->major;
+        ip->minor = dip->minor;
+        ip->nlink = dip->nlink;
+        ip->size = dip->size;
+        memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
+        brelse(bp);
+        ip->valid = 1;
+        if(ip->type == 0){
+            panic("ilock: no type");
+        }
+    }
+}
+
+// Unlock the given inode.
+void iunlock(struct inode* ip){
+    if(ip == 0 || !holdingsleep(&ip->lock) || ip->ref < 1){
+        panic("iunlock");
+    }
+
+    releasesleep(&ip->lock);
+}
+
+// Drop a reference to an in-memory inode.
+// If that was the last reference, the inode table entry can
+// be recycled.
+// If that was the last reference and the inode has no links
+// to it, free the inode (and its content) on disk.
+// All calls to iput() must be inside a transaction in
+// case it has to free the inode.
+void iput(struct inode* ip){
+    acquire(&itable.lock);
+
+    if(ip->ref == 1 && ip->valid && ip->nlink == 0){
+        // inode has no links and no other references: truncate and free.
+
+        // ip->ref == 1 means no other process can have ip locked,
+        // so this acquiresleep() won't block (or deadlock).
+        acquiresleep(&ip->lock);
+
+        release(&itable.lock);
+
+        itrunc(ip);
+        ip->type = 0;
+        iupdate(ip);
+        ip->valid = 0;
+
+        releasesleep(&ip->lock);
+
+        acquire(&itable.lock);
+    }
+
+    ip->ref--;
+    release(&itable.lock);
+}
+
+void iunlockput(struct inode* ip){
+    iunlock(ip);
+    iput(ip);
+}
+
+// Copy a modified in-memory inode to disk.
+// Must be called after every change to an inode's field
+// that lives on disk.
+// Caller must hold ip->lock.
+void iupdate(struct inode* ip){
+    if (!ip || !holdingsleep(&ip->lock)){
+        panic("iupdate");
+    }
+
+    struct buf *bp;
+    struct dinode *dip;
+
+    bp = bread(ip->dev, IBLOCK(ip->inum, sb));
+    dip = (struct dinode*)bp->data + (ip->inum % IPB);
+    dip->type = ip->type;
+    dip->major = ip->major;
+    dip->minor = ip->minor;
+    dip->nlink = ip->nlink;
+    dip->size = ip->size;
+    memmove(dip->addrs, ip->addrs, NDIRECT+1);
+    bwrite(bp);
+    brelse(bp);
+}
+
+// Copy stat information from inode.
+// Caller must hold ip->lock.
+void stati(struct inode*, struct stat*){
+}
+
+// Truncate inode (discard contents).
+// Caller must hold ip->lock.
+void itrunc(struct inode* ip){
+    if (!ip || !holdingsleep(&ip->lock)){
+        panic("iupdate");
+    }
+
+    if (ip->valid == 0){
+        return;
+    }
+
+    int i, j;
+    struct buf *bp;
+    uint *a;
+
+    // free all blocks indexed by inode
+    for(i = 0; i < NDIRECT; i++){
+        if(ip->addrs[i]){
+            bfree(ip->dev, ip->addrs[i]);
+            ip->addrs[i] = 0;
+        }
+    }
+
+    if(ip->addrs[NDIRECT]){
+        bp = bread(ip->dev, ip->addrs[NDIRECT]);
+        a = (uint*)bp->data;
+        for(j = 0; j < NINDIRECT; j++){
+        if(a[j])
+            bfree(ip->dev, a[j]);
+        }
+        brelse(bp);
+        bfree(ip->dev, ip->addrs[NDIRECT]);
+        ip->addrs[NDIRECT] = 0;
+    }
+
+    ip->size = 0;
+
+    // save the inode info on disk.
+    iupdate(ip);
+}

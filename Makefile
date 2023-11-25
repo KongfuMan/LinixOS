@@ -29,7 +29,7 @@ OBJS = \
 	$K/fs.o \
 	$K/file.o \
 	$K/inode.o \
-#   $K/sysproc.o \
+    $K/sysproc.o \
 #   $K/log.o \
 #   $K/pipe.o \
 

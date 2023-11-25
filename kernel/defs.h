@@ -35,6 +35,9 @@ int             readi(struct inode*, int, uint64, uint, uint);
 void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, int, uint64, uint, uint);
 void            itrunc(struct inode*);
+struct inode*   iget(uint, uint);
+struct inode*   ialloc(uint, short);
+struct inode*   idup(struct inode*);
 
 // function internal to fs.c, declared here just for test, remove
 uint balloc(uint dev);
@@ -90,6 +93,11 @@ pte_t * walk(pagetable_t pgtable, uint64 va, int alloc);
 int copyout(pagetable_t, uint64, char *, uint64);
 int copyin(pagetable_t, char *, uint64, uint64);
 int copyinstr(pagetable_t, char *, uint64, uint64);
+uint64 uvmalloc(pagetable_t, uint64, uint64, int);
+uint64 uvmdealloc(pagetable_t, uint64, uint64);
+uint64 walkaddr(pagetable_t, uint64);
+void uvmclear(pagetable_t, uint64);
+void uvmfree(pagetable_t pagetable, uint64 sz);
 
 //proc.c
 void proc_mapstacks(pagetable_t);
@@ -107,6 +115,8 @@ void push_off(void);
 void pop_off(void);
 int either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int either_copyin(void *dst, int user_src, uint64 src, uint64 len);
+pagetable_t proc_pagetable(struct proc*);
+void proc_freepagetable(pagetable_t, uint64);
 
 //trap.c
 void trapinit(void);
@@ -139,6 +149,11 @@ uint bmap(struct inode* ip, int bn);
 
 // syscall.c
 void syscall(void);
+void argaddr(int, uint64*);
+int argstr(int, char*, int);
+void argint(int, int*);
+int fetchaddr(uint64, uint64*);
+int fetchstr(uint64, char*, int);
 
 // sleeplock.c
 void acquiresleep(struct sleeplock*);
@@ -151,5 +166,8 @@ void initlock(struct spinlock*, char*);
 void acquire(struct spinlock*);
 void release(struct spinlock*);
 int holding(struct spinlock*);
+
+// exec.c
+int exec(char*, char**);
 
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

@@ -18,8 +18,8 @@ fetchaddr(uint64 addr, uint64 *ip)
   struct proc *p = current_proc();
   if(addr >= p->sz || addr+sizeof(uint64) > p->sz) // both tests needed, in case of overflow
     return -1;
-//   if(copyin(p->pagetable, (char *)ip, addr, sizeof(*ip)) != 0)
-//     return -1;
+  if(copyin(p->pagetable, (char *)ip, addr, sizeof(*ip)) != 0)
+    return -1;
   return 0;
 }
 
@@ -29,11 +29,9 @@ int
 fetchstr(uint64 addr, char *buf, int max)
 {
   struct proc *p = current_proc();
-//   if(copyinstr(p->pagetable, buf, addr, max) < 0)
-//     return -1;
-    if (p) {}
-//   return strlen(buf);
-  return 0;
+  if(copyinstr(p->pagetable, buf, addr, max) < 0)
+    return -1;
+  return strlen(buf);
 }
 
 static uint64
@@ -87,7 +85,7 @@ argstr(int n, char *buf, int max)
 
 // Prototypes for the functions that handle system calls.
 // extern uint64 sys_fork(void);
-// extern uint64 sys_exit(void);
+extern uint64 sys_exit(void);
 // extern uint64 sys_wait(void);
 // extern uint64 sys_pipe(void);
 // extern uint64 sys_read(void);
@@ -112,7 +110,7 @@ extern uint64 sys_exec(void);
 // to the function that handles the system call.
 static uint64 (*syscalls[])(void) = {
 // [SYS_fork]    sys_fork,
-// [SYS_exit]    sys_exit,
+[SYS_exit]    sys_exit,
 // [SYS_wait]    sys_wait,
 // [SYS_pipe]    sys_pipe,
 // [SYS_read]    sys_read,
@@ -142,6 +140,7 @@ void syscall(){
     }else{
         printf("%d %s: unknown sys call %d\n",
             p->pid, p->name, num);
+        panic("syscall");
         p->trapframe->a0 = -1;
     }
 }
