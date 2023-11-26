@@ -24,7 +24,9 @@ struct run{
 struct {
     struct spinlock lock;
     struct run *freelist;
-    int ref_count[PFCOUNT]; // ref count of each physical page frame.
+    // ref count of each physical page frame.
+    // one physical page can be mapped to virtual COW page of various processes.
+    int ref_count[PFCOUNT]; 
 }kmem;
 
 void
