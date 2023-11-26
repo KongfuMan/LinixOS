@@ -79,6 +79,7 @@ char* strncpy(char*, const char*, int);
 void printf(char*, ...);
 void panic(char*);
 void assert(uint);
+void printfinit(void);
 
 // vm.c
 void kvminit(void);
