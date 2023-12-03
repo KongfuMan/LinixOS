@@ -182,19 +182,44 @@ skipelem(char *path, char *name){
     return path;
 }
 
-// Write a new directory entry (name, inum) into the directory dp.
-// Returns 0 on success, -1 on failure (e.g. out of disk blocks).
+// ilock must have been called by caller.
+// Write a new dirent(name, inum) into the parent directory inode`dp`.
+// Returns 0 on success, -1 on failure (out of disk blocks, dirent already exist).
 int
 dirlink(struct inode *dp, char *name, uint inum){
-    // link a dirent associated with given path to an inode.
+    int off;
+    struct dirent de;
+    uint poff;
 
-    return -1;
+    if (dirlookup(dp, name, &poff) != 0){
+        // dirent with `name` already exist
+        iput(dp); // release ref
+        return -1;
+    }
+
+    for (off = 0; off < dp->size; off += sizeof(de)){
+        readi(dp, 0, (uint64)&de, off, sizeof(de));
+        if (de.inum == 0){
+            // find first free dirent
+            break;
+        }
+    }
+    
+    strncpy(de.name, name, DIRSIZE);
+    de.inum = inum;
+
+    if(writei(dp, 0, (uint64)&de, off, sizeof(de)) != sizeof(de)){
+        return -1;
+    }
+    return 0;
 }
 
-// Look for a directory entry in a directory.
+// ilock must have been called by caller.
+// Look for a sub directory entry in a directory using `name`.
 // If found, set *poff to byte offset of entry.
+// retuen the inode for the dirent with `name`. The inode is 
 struct inode*
-dirlookup(struct inode* ip, char* path, uint* poff){
+dirlookup(struct inode* ip, char* name, uint* poff){
     uint off; //, inum;
     struct dirent de;
 
@@ -207,7 +232,7 @@ dirlookup(struct inode* ip, char* path, uint* poff){
         if(readi(ip, 0, (uint64)&de, off, sizeof(de)) != sizeof(de)){
             panic("dirlookup");
         }
-        if (namecmp(path, de.name) == 0){
+        if (namecmp(name, de.name) == 0){
             // found a matching dirent
             if(poff){
                 *poff = off;
@@ -228,7 +253,7 @@ namex(char *path, int nameiparent, char *name){
     struct inode *ip, *next;
 
     if (*path == '/'){
-        ip = iget(ROOTDEV, ROOTINO); //
+        ip = iget(ROOTDEV, ROOTINO);
     }else{
         ip = idup(current_proc()->cwd);
     }
@@ -240,6 +265,8 @@ namex(char *path, int nameiparent, char *name){
             return 0;
         }
         if (nameiparent && *path == '\0'){
+            // `name` is lathe last segment of path, 
+            // just return the parent inode `ip`.
             iunlockput(ip);
             return ip;
         }
@@ -271,5 +298,9 @@ namei(char* path){
     return namex(path, 0, name);
 }
 
+// return the parent directory inode without lock
+// save the leaf dirent name to `name`
 struct inode*
-nameiparent(char*, char*);
+nameiparent(char* path, char* name){
+    return namex(path, 1, name);
+}

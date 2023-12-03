@@ -1,6 +1,5 @@
 #include "types.h"
 #include "param.h"
-#include "memlayout.h"
 #include "riscv.h"
 #include "spinlock.h"
 #include "sleeplock.h"
@@ -8,6 +7,7 @@
 #include "fs.h"
 #include "buf.h"
 #include "defs.h"
+#include "memlayout.h"
 
 extern char trampoline[]; // trampoline.S
 
@@ -15,6 +15,12 @@ struct cpu cpus[NCPU];
 struct proc proc[NPROC];
 
 struct proc *initproc;
+
+// helps ensure that wakeups of wait()ing
+// parents are not lost. helps obey the
+// memory model when using p->parent.
+// must be acquired before any p->lock.
+struct spinlock wait_lock;
 
 int cpuid(void){
     return r_tp();
@@ -271,19 +277,55 @@ void sleep(void* chan, struct spinlock *lk){
     acquire(lk);
 }
 
-// Copy on write fork
+// fork a child proc return child proc id if success,
+// return -1 otherwise
 pid_t fork(){
     struct proc *np, *p;
+    int i, pid;
     p = current_proc();
     np = allocproc();
 
-    // copy page table
-    uvmcopy(p->pagetable, np->pagetable, p->sz);
+    if (!np){
+        return -1;
+    }
+
+    // copy page table, change PTE_W -> PTE_COW
+    if (uvmcopy(p->pagetable, np->pagetable, p->sz) == -1){
+        // free np
+        return -1;
+    }
     np->sz = p->sz;
 
+    // copy saved user registers.
+    *(np->trapframe) = *(p->trapframe);
 
+    // Cause fork to return 0 in the child.
+    np->trapframe->a0 = 0;
 
-    return 0;
+    // increment reference counts on open file descriptors.
+    for(i = 0; i < NOFILE; i++){
+        if(p->ofile[i]){
+            np->ofile[i] = filedup(p->ofile[i]);
+        }
+    }
+
+    np->cwd = idup(p->cwd);
+
+    safestrcpy(np->name, p->name, sizeof(p->name));
+
+    pid = np->pid;
+
+    release(&np->lock);
+
+    acquire(&wait_lock);
+    np->parent = p;
+    release(&wait_lock);
+
+    acquire(&np->lock);
+    np->state = RUNNABLE;
+    release(&np->lock);
+
+    return pid;
 }
 
 // wake up all sleeping proc
@@ -299,20 +341,29 @@ void wakeup(void* chan){
 }
 
 
-// copy kernel to either a user address, or kernel address,
-// depending on usr_dst.
+// copy kernel to either a uva (usr_dst==1), or kva(usr_dst==0)
 // Returns 0 on success, -1 on error.
 int
 either_copyout(int user_dst, uint64 dst, void *src, uint64 len){
     if (user_dst){
+        // dst is uva
         return copyout(current_proc()->pagetable, dst, (char*)src, len);
     }
+
+    // dst is kva
     memmove((char *)dst, src, len);
     return 0;
 }
 
-// copy mem from user to kernel space
+// copy into kernel space from either a uva (usr_dst==1), or kva(usr_dst==0)
+// Returns 0 on success, -1 on error.
 int
 either_copyin(void *dst, int user_src, uint64 src, uint64 len){
-    return -1;
+    if (user_src){
+        // src is uva
+        return copyin(current_proc()->pagetable, (char *)dst, src, len);
+    }
+    // src is kva
+    memmove(dst, (void *)src, len);
+    return 0;
 }

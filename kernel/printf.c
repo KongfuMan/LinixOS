@@ -9,20 +9,20 @@
 #include "spinlock.h"
 #include "sleeplock.h"
 #include "fs.h"
-// #include "file.h"
-#include "memlayout.h"
+#include "file.h"
 #include "riscv.h"
 #include "proc.h"
 #include "buf.h"
 #include "defs.h"
+#include "memlayout.h"
 
 volatile int panicked = 0;
 
 // lock to avoid interleaving concurrent printf's.
-// static struct {
-//   struct spinlock lock;
-//   int locking;
-// } pr;
+static struct {
+    struct spinlock lock;
+    int locking;
+} pr;
 
 static char digits[] = "0123456789abcdef";
 
@@ -119,12 +119,12 @@ void panic(char *s)
         ;
 }
 
-// void
-// printfinit(void)
-// {
-//   initlock(&pr.lock, "pr");
-//   pr.locking = 1;
-// }
+void
+printfinit(void)
+{
+    initlock(&pr.lock, "pr");
+    pr.locking = 1;
+}
 
 void
 assert(uint expr){

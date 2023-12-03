@@ -12,6 +12,12 @@
 
 uint64
 sys_exit(){
-    panic("sys_exit: not impplemented.");
-    return -1;
+  panic("sys_exit: not impplemented.");
+  return -1;
+}
+
+uint64
+sys_fork(void)
+{
+  return fork();
 }

@@ -23,9 +23,9 @@ struct run{
 // manages a list of physical page frames
 struct {
     struct spinlock lock;
-    struct run *freelist;
-    // ref count of each physical page frame.
-    // one physical page can be mapped to virtual COW page of various processes.
+    struct run *freelist; // head of the linkedlist of free pages.
+    // count of a physical page reference by the virtual COW page.
+    // One physical page can be mapped to mutilple virtual COW page of various processes.
     int ref_count[PFCOUNT]; 
 }kmem;
 
@@ -34,6 +34,7 @@ kinit()
 {
     initlock(&kmem.lock, "kmem");
     kfreerange(end, (void*)PHYSTOP);
+    printf("init memory allocator done. \n");
 }
 
 // free the contiguous physical pages start from 
@@ -46,7 +47,7 @@ void kfreerange(void* pa_start, void* pa_end){
     }
 }
 
-// free a physical page with beginning addr of `pa`
+// dealloc a phy page of initial addr of `pa` and append to the freelist.
 void
 kfree(void* pa){
     struct run* r;
@@ -68,7 +69,7 @@ kfree(void* pa){
     release(&kmem.lock);
 }
 
-// allocate a physical page and return the beginning addr
+// allocate a physical page and return the initial phy addr
 void*
 kalloc(){
     struct run *r;

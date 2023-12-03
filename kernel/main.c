@@ -1,6 +1,7 @@
 #include "param.h"
 #include "types.h"
 #include "riscv.h"
+#include "memlayout.h"
 #include "spinlock.h"
 #include "sleeplock.h"
 #include "proc.h"
@@ -85,15 +86,21 @@ void test_alloc_inode(){
     }
 }
 
+void print_info(){
+    printf("Kernel base physical address: %d Mb.\n", KERNBASE/1024/1024);
+    printf("Physical memory end: %d Mb.\n", PHYSTOP/1024/1024);
+    printf("Physical memory size: %d Mb.\n", DRAM_SIZE);
+    printf("Total page number: %d.\n", DRAM_SIZE/PGSIZE*1024*1024);
+}
+
 volatile int starting = 1;
 
 void main(){
     if (starting == 1){
         consoleinit();
-        // printfinit();
-        printf("\n");
-        printf("xv6 from scratch kernel is booting\n");
-        printf("\n");
+        printfinit();
+        printf("\nxv6 from scratch kernel is booting\n\n");
+        print_info();
         kinit();            // init physical page allocator
         kvminit();          // create kernel page table.
         kvminithart();      // enable paging for each hart.
@@ -104,10 +111,9 @@ void main(){
         plicinithart();     // ask PLIC for device interrupts
         binit();            // buffer
         iinit();            // inode table
-        // fileinit();      // file table
+        fileinit();         // file table
         virtio_disk_init(); // emulated hard disk
-        // test_buf_r();
-        // test_alloc_inode();
+
         // pci_init();      // pci initialize
         // sockinit();      // network init
         userinit();         // first user process

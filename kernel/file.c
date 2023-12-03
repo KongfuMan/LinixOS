@@ -22,7 +22,7 @@ struct file* filedup(struct file* file){
 }
 
 void fileinit(void){
-
+    
 }
 
 // write `n` bytes from file f to user virtual address `addr`

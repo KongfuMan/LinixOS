@@ -143,18 +143,17 @@ ialloc(uint dev, short type){
     struct buf *b;
     struct dinode *dip;
 
-    for (inum = 0; inum < sb.ninodes; inum += IPB){
+    for (inum = ROOTINO; inum < sb.ninodes; inum++){
         b = bread(dev, IBLOCK(inum, sb));
-        for (dip = (struct dinode*)b->data; dip < ((struct dinode*)b->data + IPB); dip++){
-            if (dip->type == T_NONE){
-                memset(dip, 0, sizeof(dip));
-                // update dinode type to mark it as allocated.
-                dip->type = type;
-                bwrite(b);
-                brelse(b);
-                // find available inode struct for inum
-                return iget(dev, inum);
-            }
+        dip = (struct dinode*)b->data + inum % IPB;
+        if (dip->type == T_NONE){
+            memset(dip, 0, sizeof(dip));
+            // update dinode type to mark it as allocated.
+            dip->type = type;
+            bwrite(b);
+            brelse(b);
+            // find available inode struct for inum
+            return iget(dev, inum);
         }
         brelse(b);
     }
@@ -182,22 +181,21 @@ idup(struct inode *ip)
 int
 readi(struct inode *ip, int user_dst, uint64 dst, uint off, uint n){
     // arguments check
-    if (!ip || (off + n) >= ip->size){
-        panic("readi");
+    if (!ip || (off + n) > ip->size ||  n < 0){
+        return -1;
     }
 
     struct buf *bp;
     uint tot, sz; // actual bytes read totally
-    uint blockno, bn;
+    uint blockno;
     for (tot = 0; tot < n; tot += sz){
-        bn = (uint)(off / BSIZE);
-        blockno = bmap(ip, bn);
+        blockno = bmap(ip, (uint)(off / BSIZE)); // read block by blockno
         bp = bread(ip->dev, blockno);
         if (!bp){
             return 0;
         }
 
-        sz = min(BSIZE - off % BSIZE, n); // actual bytes read for one iteration
+        sz = min(BSIZE - off % BSIZE, n - tot); // actual bytes read for one iteration
         either_copyout(user_dst, dst, &bp->data[off % BSIZE], sz);
         dst += sz;
         off += sz;
@@ -208,7 +206,34 @@ readi(struct inode *ip, int user_dst, uint64 dst, uint off, uint n){
 
 // write `n` bytes starting from off
 int writei(struct inode* ip, int user_src, uint64 src, uint off, uint n){
-    return 0;
+    if(!ip || (off + n) > ip->size ||  n < 0 ){
+        return -1;
+    }
+
+    uint tot, size, offset;
+    uint blockno;
+    struct buf *bp;
+    for (tot = 0; tot < n; tot += size){
+        blockno = bmap(ip, (uint)(off / BSIZE)); // get actual blockno or create if not exist
+        if (blockno == 0){
+            break;
+        }
+
+        bp = bread(ip->dev, blockno);
+        offset = off % BSIZE;   // offset within block
+        size = min(BSIZE - offset, n - tot);
+        if (either_copyin((void *)(&bp->data[offset]), user_src, src, size) == -1){
+            brelse(bp);
+            break;
+        }
+
+        bwrite(bp);
+        brelse(bp);
+        off += size;
+        src += size;
+    }
+
+    return tot;
 }
 
 // load inode data from disk if not loaded yet and acquire inode sleep lock
@@ -242,7 +267,7 @@ void ilock(struct inode* ip){
 // Unlock the given inode.
 void iunlock(struct inode* ip){
     if(ip == 0 || !holdingsleep(&ip->lock) || ip->ref < 1){
-        panic("iunlock");
+        panic("iunlock: not holding the lock");
     }
 
     releasesleep(&ip->lock);
@@ -292,7 +317,7 @@ void iunlockput(struct inode* ip){
 // Caller must hold ip->lock.
 void iupdate(struct inode* ip){
     if (!ip || !holdingsleep(&ip->lock)){
-        panic("iupdate");
+        panic("iupdate: not holding sleep lock");
     }
 
     struct buf *bp;
@@ -319,7 +344,7 @@ void stati(struct inode*, struct stat*){
 // Caller must hold ip->lock.
 void itrunc(struct inode* ip){
     if (!ip || !holdingsleep(&ip->lock)){
-        panic("iupdate");
+        panic("itrunc");
     }
 
     if (ip->valid == 0){

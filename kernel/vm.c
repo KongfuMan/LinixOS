@@ -162,7 +162,10 @@ mappages(pagetable_t pgtable, uint64 va, uint64 size, uint64 pa, int permission)
         pa += PGSIZE;
         total += count;
     }
-    printf("%d page tables created.\n", total);
+
+    if (total){
+        printf("%d page tables created.\n", total);
+    }
     return 0;
 }
 
@@ -177,7 +180,7 @@ uvmunmap(pagetable_t pgtable, uint64 va, int n, int do_free){
     pte_t *pte;
     for (addr = va; (addr-va) / PGSIZE < n; addr += PGSIZE){
         if ((pte = walk(pgtable, va, 0)) == 0){
-            panic("");
+            panic("uvmunmap");
         }
         if (!((*pte) & PTE_V)){
             panic("uvmunmap: page not mapped.");
@@ -268,7 +271,7 @@ uvmdealloc(pagetable_t pagetable, uint64 oldsize, uint64 newsize){
     return newsize;
 }
 
-// copy each pte from old to new without actuall creating physical page for new pgtable.
+// copy each pte from old to new without actually allocating physical page for new pgtable.
 // retrun 0 on success, -1 on failure
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 size){

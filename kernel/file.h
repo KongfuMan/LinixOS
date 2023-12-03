@@ -29,3 +29,5 @@ struct inode {
     int size;                // size in bytes used 
     uint addrs[NDIRECT + 1]; // index is logic blockno => addr[index] is the pyhsical blockno.
 };
+
+#define CONSOLE 1

@@ -103,8 +103,8 @@ CFLAGS += -I.
 CFLAGS += -O0
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
-# physical memory size
-DRAM_SIZE := 256
+# physical memory size: unit is MegaByte
+DRAM_SIZE := 1024
 CFLAGS += -DDRAM_SIZE=$(DRAM_SIZE)
 
 # ifeq ($(LAB),net)
@@ -179,8 +179,8 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 
 UPROGS=\
  	$U/_init\
-# 	$U/_cat\
-# 	$U/_echo\
+	$U/_cat\
+	$U/_echo\
 # 	$U/_forktest\
 # 	$U/_grep\
 # 	$U/_kill\

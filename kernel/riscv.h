@@ -343,7 +343,8 @@ typedef uint64 *pagetable_t; // 512 PTEs per page table
 #define PTE_W (1L << 2) // writable
 #define PTE_X (1L << 3) // executable
 #define PTE_U (1L << 4) // accessible in user space
-#define PTE_COW (1L << 8) // RSW bit to mark cow pte
+#define PTE_COW (1L << 8) // RSW 8th bit to mark cow pte
+#define PTE_SWAP (1L << 9) // RSW 9th bit to mark the page swapped out
 
 // shift a physical address to the right place for a PTE.
 #define PA2PTE(pa) ((((uint64)pa) / PGSIZE) << 10)
@@ -364,3 +365,13 @@ typedef uint64 *pagetable_t; // 512 PTEs per page table
 // Sv39, to avoid having to sign-extend virtual addresses
 // that have the high bit set.
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
+
+#define MAXPTECOUNT 100
+
+// struct page {
+//     uint flags;
+//     // pte_t mapping[MAXPTECOUNT];
+//     uint refcnt;
+// }
+
+// struct page mem_map[PFCOUNT];
