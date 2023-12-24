@@ -1,14 +1,20 @@
 // an open file
 struct file {
-    int ref;
-    uint offset;
-    struct inode *ip;  // for device
+    enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE } type;
+    int ref; // reference count
     char readable;
     char writable;
-    short major;    // device
+    struct pipe *pipe; // FD_PIPE
+    struct inode *ip;  // FD_INODE and FD_DEVICE
+    uint off;          // FD_INODE
+    short major;       // FD_DEVICE
+
     // struct sock *sock; // for socket
-    // struct pipe *pipe; // for pipe
 };
+
+#define major(dev)  ((dev) >> 16 & 0xFFFF)
+#define minor(dev)  ((dev) & 0xFFFF)
+#define	mkdev(m,n)  ((uint)((m)<<16| (n)))
 
 // node that indexing a bunch of blocks for a file. It represents a continuous logic disk space of a file.
 // inode represent the in-memory data structure. 
@@ -29,5 +35,13 @@ struct inode {
     int size;                // size in bytes used 
     uint addrs[NDIRECT + 1]; // index is logic blockno => addr[index] is the pyhsical blockno.
 };
+
+struct devsw {
+    // function pointer, similar as interface
+    int (*read)(int, uint64, int);
+    int (*write)(int, uint64, int);
+};
+
+extern struct devsw devsw[NDEV];
 
 #define CONSOLE 1

@@ -42,6 +42,9 @@ void do_page_fault(){
     //        2. store cow page
     //        3. store/load page that was swapped out before.
     //        4.
+    uint64 stval = r_stval();
+    uint64 scause = r_scause();
+    printf("do page fault.\n");
 }
 
 void usertrap(){
@@ -70,7 +73,8 @@ void usertrap(){
 
         intr_on();
         syscall();
-    }else if(scause == 15){ // store page fault
+    }else if(scause == 13 || scause == 15 || scause == 5 || scause == 7){
+        // loast/store access/page fault
         do_page_fault();
     }else if ((which_dev = devintr()) != 0){
         // known unhandled source

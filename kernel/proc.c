@@ -16,6 +16,8 @@ struct proc proc[NPROC];
 
 struct proc *initproc;
 
+static void freeproc(struct proc *p);
+
 // helps ensure that wakeups of wait()ing
 // parents are not lost. helps obey the
 // memory model when using p->parent.
@@ -170,7 +172,7 @@ struct proc* allocproc(){
 
 found:
     // init the proc just found
-    p->pid = ((uint64)(p - proc) / sizeof(struct proc)); // TODO: allocpid();
+    p->pid = (pid_t)(p - proc); // TODO: allocpid();
     p->state = USED;
 
     // Allocate a trapframe page.
@@ -328,6 +330,29 @@ pid_t fork(){
     return pid;
 }
 
+// free a proc structure and the data hanging from it,
+// including user pages.
+// p->lock must be held.
+static void
+freeproc(struct proc *p){
+    if(p->trapframe){
+        kfree((void*)p->trapframe);
+    }
+    p->trapframe = 0;
+    if(p->pagetable){
+        proc_freepagetable(p->pagetable, p->sz);
+    }
+    p->pagetable = 0;
+    p->sz = 0;
+    p->pid = 0;
+    p->parent = 0;
+    p->name[0] = 0;
+    p->chan = 0;
+    p->killed = 0;
+    p->xstate = 0;
+    p->state = UNUSED;
+}
+
 // wake up all sleeping proc
 void wakeup(void* chan){
     struct proc *p;
@@ -339,7 +364,6 @@ void wakeup(void* chan){
         release(&p->lock);
     }
 }
-
 
 // copy kernel to either a uva (usr_dst==1), or kva(usr_dst==0)
 // Returns 0 on success, -1 on error.
@@ -367,3 +391,83 @@ either_copyin(void *dst, int user_src, uint64 src, uint64 len){
     memmove(dst, (void *)src, len);
     return 0;
 }
+
+// Wait for a child process to exit and copy the status to addr and return its pid
+// Return -1 if this process has no children.
+int
+wait(uint64 addr){
+    struct proc *p;
+    int haschild, pid;
+    struct proc *pp = current_proc();
+    // Find all children and check any killed?
+    // If no ZOMBIE child, sleep on the wait_lock and 
+    // wait for any child call exit to wake up it.
+    // Copyout xstate to addr and return child procid
+
+    acquire(&wait_lock); // wait lock to protect pp
+
+    while (1){
+        haschild = 0;
+        for (p = proc; p < proc + NPROC; p++){
+            acquire(&p->lock);
+            if (p->parent == pp){
+                haschild = 1;
+                if (p->state == ZOMBIE){
+                    pid = p->pid;
+                    if (addr != 0 && 
+                        copyout(pp->pagetable, addr, (char *)&p->xstate, sizeof(p->xstate)) != 0){
+                        release(&p->lock);
+                        release(&wait_lock);
+                        return -1;
+                    }
+                    freeproc(p);
+                    release(&p->lock);
+                    release(&wait_lock);
+                    return pid;
+                }
+            }
+            
+            release(&p->lock);
+        }
+
+        if (!haschild){
+            release(&wait_lock);
+            return -1;
+        }
+
+        sleep(pp, &wait_lock);
+    }
+}
+
+void
+exit(int status){
+    int fd;
+    struct proc *p = current_proc();
+    if (p == initproc){
+        panic("initproc exit. \n");
+    }
+
+    // Close all open files
+    for (fd = 0; fd < NFILE; fd++){
+        if (p->ofile[fd]){
+            fileclose(p->ofile[fd]);
+            p->ofile[fd] = 0;
+        }
+    }
+
+    acquire(&wait_lock);
+
+    // Give any children to init.
+    // TODO: reparent(p);
+
+    wakeup(p->parent);
+    
+    acquire(&p->lock);
+    p->xstate = p->state;
+    p->state = ZOMBIE;
+    release(&wait_lock);
+
+    sched();
+    panic("exit");
+}
+

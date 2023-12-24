@@ -179,7 +179,7 @@ uvmunmap(pagetable_t pgtable, uint64 va, int n, int do_free){
     uint64 addr;
     pte_t *pte;
     for (addr = va; (addr-va) / PGSIZE < n; addr += PGSIZE){
-        if ((pte = walk(pgtable, va, 0)) == 0){
+        if ((pte = walk(pgtable, addr, 0)) == 0){
             panic("uvmunmap");
         }
         if (!((*pte) & PTE_V)){
@@ -273,19 +273,52 @@ uvmdealloc(pagetable_t pagetable, uint64 oldsize, uint64 newsize){
 
 // copy each pte from old to new without actually allocating physical page for new pgtable.
 // retrun 0 on success, -1 on failure
+// int
+// uvmcopy(pagetable_t old, pagetable_t new, uint64 size){
+//     int va = 0;
+//     for (; va < size; va += PGSIZE){
+//         pte_t *pte = walk(old, va, 0);
+        
+//         *pte &= ~PTE_W;
+//         *pte |= PTE_COW;
+
+//         int flag = PTE_FLAGS(*pte);
+//         uint64 pa = PTE2PA(*pte);
+//         incr_ref((void*)pa);
+//         if (mappages(new, va, PGSIZE, pa, flag) != 0){
+//             goto err;
+//         }
+//     }
+//     return 0;
+
+// err:
+//     uvmunmap(new, 0, va / PGSIZE, 0);
+//     return -1;
+// }
+
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 size){
     int va = 0;
+    uint64 oldpa;
+    uint64 newpa;
+    pte_t *pte;
     for (; va < size; va += PGSIZE){
-        pte_t *pte = walk(old, va, 0);
+        if((pte = walk(old, va, 0)) == 0){
+            panic("uvmcopy: pte should exist");
+        }
         
-        *pte &= ~PTE_W;
-        *pte |= PTE_COW;
+        if (((*pte) & PTE_V) == 0){
+            panic("uvmcopy: page not present");
+        }
 
+        if ((newpa = (uint64)kalloc()) == 0){
+            goto err;
+        }
+
+        uint64 oldpa = PTE2PA(*pte);
         int flag = PTE_FLAGS(*pte);
-        uint64 pa = PTE2PA(*pte);
-        incr_ref((void*)pa);
-        if (mappages(new, va, PGSIZE, pa, flag) != 0){
+        memmove((void *)newpa, (void *)oldpa, PGSIZE);
+        if (mappages(new, va, PGSIZE, newpa, flag) != 0){
             goto err;
         }
     }

@@ -101,23 +101,25 @@ void uvmclear(pagetable_t, uint64);
 void uvmfree(pagetable_t pagetable, uint64 sz);
 
 //proc.c
-void proc_mapstacks(pagetable_t);
-void procinit(void);
-int cpuid(void);
-void userinit(void);
-void scheduler(void);
-struct cpu* current_cpu();
-struct proc* current_proc(void);
-void sleep(void*, struct spinlock*);
-void sched(void);
-pid_t fork(void);
-void wakeup(void*);
-void push_off(void);
-void pop_off(void);
-int either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
-int either_copyin(void *dst, int user_src, uint64 src, uint64 len);
-pagetable_t proc_pagetable(struct proc*);
-void proc_freepagetable(pagetable_t, uint64);
+void            proc_mapstacks(pagetable_t);
+void            procinit(void);
+int             cpuid(void);
+void            userinit(void);
+void            scheduler(void);
+struct cpu*     current_cpu();
+struct proc*    current_proc(void);
+void            sleep(void*, struct spinlock*);
+void            sched(void);
+pid_t           fork(void);
+void            wakeup(void*);
+void            push_off(void);
+void            pop_off(void);
+int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
+int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
+pagetable_t     proc_pagetable(struct proc*);
+void            proc_freepagetable(pagetable_t, uint64);
+int             wait(uint64);
+void            exit(int);
 
 //trap.c
 void trapinit(void);

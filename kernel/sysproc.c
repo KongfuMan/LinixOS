@@ -11,7 +11,7 @@
 #include "stat.h"
 
 uint64
-sys_exit(){
+sys_exit(void){
   panic("sys_exit: not impplemented.");
   return -1;
 }
@@ -20,4 +20,11 @@ uint64
 sys_fork(void)
 {
   return fork();
+}
+
+uint64
+sys_wait(void){
+  uint64 p;
+  argaddr(0, &p);
+  return wait(p);
 }

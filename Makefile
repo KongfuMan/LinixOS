@@ -100,11 +100,12 @@ CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I.
-CFLAGS += -O0
+CFLAGS += -O0 # disable optimization
+CFLAGS += -Wno-unused # suppress unused variable compile error
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 # physical memory size: unit is MegaByte
-DRAM_SIZE := 1024
+DRAM_SIZE := 256
 CFLAGS += -DDRAM_SIZE=$(DRAM_SIZE)
 
 # ifeq ($(LAB),net)
@@ -181,6 +182,7 @@ UPROGS=\
  	$U/_init\
 	$U/_cat\
 	$U/_echo\
+	$U/_sh\
 # 	$U/_forktest\
 # 	$U/_grep\
 # 	$U/_kill\
@@ -188,7 +190,6 @@ UPROGS=\
 # 	$U/_ls\
 # 	$U/_mkdir\
 # 	$U/_rm\
-# 	$U/_sh\
 # 	$U/_stressfs\
 # 	$U/_usertests\
 # 	$U/_grind\

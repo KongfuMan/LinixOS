@@ -128,6 +128,7 @@ iget(uint dev, uint inum){
     ip->dev = dev;
     ip->inum = inum;
     ip->ref = 1;
+    ip->valid = 0; // set invalid since ip->data still yet to be loaded
     release(&itable.lock);
     return ip;
 }
@@ -367,8 +368,9 @@ void itrunc(struct inode* ip){
         bp = bread(ip->dev, ip->addrs[NDIRECT]);
         a = (uint*)bp->data;
         for(j = 0; j < NINDIRECT; j++){
-        if(a[j])
-            bfree(ip->dev, a[j]);
+            if(a[j]){
+                bfree(ip->dev, a[j]);
+            }
         }
         brelse(bp);
         bfree(ip->dev, ip->addrs[NDIRECT]);

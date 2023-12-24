@@ -9,6 +9,40 @@
 #include "defs.h"
 #include "file.h"
 #include "stat.h"
+#include "fcntl.h"
+
+// Fetch the nth word-sized system call argument as a file descriptor
+// and return both the descriptor and the corresponding struct file.
+static int
+argfd(int n, int *pfd, struct file **pf)
+{
+  int fd;
+  struct file *f;
+
+  argint(n, &fd);
+  if(fd < 0 || fd >= NOFILE || (f=current_proc()->ofile[fd]) == 0)
+    return -1;
+  if(pfd)
+    *pfd = fd;
+  if(pf)
+    *pf = f;
+  return 0;
+}
+
+// Allocate a file descriptor for the given file.
+// Takes over file reference from caller on success.
+static int
+fdalloc(struct file *f){
+    struct proc *p = current_proc();
+    int i;
+    for (i = 0; i < NFILE; i++){
+        if (!p->ofile[i]){
+            p->ofile[i] = f;
+            return i;
+        }
+    }
+    return -1;
+}
 
 // 1. load the binary (with elf format) into memory from disk by the file path
 // 2. create a chid process to run the binary
@@ -133,8 +167,54 @@ fail:
 // open a file by path with a MODE and return fd.
 uint64
 sys_open(void){
-    // struct proc* p = current_proc();
-    return -1;
+    char path[MAXPATH];
+    int omode;
+    struct inode *ip;
+    struct file *f;
+    int fd;
+    if (argstr(0, path, MAXPATH) < 0){
+        return -1;
+    }
+    argint(1, &omode);
+    if ((ip = namei(path)) != 0){
+        if (ip->type == T_DIR){
+            return -1;
+        }
+        if ((omode & O_TRUNC) != 0){
+            // free blocks
+            // update inode
+            ilock(ip);
+            itrunc(ip);
+            iunlock(ip);
+        }
+    }else if((omode & O_CREATE) == 0 || (ip = create(path, T_FILE, 0, 0)) == 0){
+        return -1;
+    }
+
+    ilock(ip);
+    // create file struct and add to proc->ofile
+    if ((f = filealloc()) == 0 || (fd = fdalloc(f)) == -1){
+        if (f){
+            fileclose(f);
+        }
+        iunlockput(ip);
+        return -1;
+    }
+
+    // init fields of file
+    if(ip->type == T_DEVICE){
+        f->type = FD_DEVICE;
+        f->major = ip->major;
+    } else {
+        f->type = FD_INODE;
+        f->off = 0;
+    }
+    f->ip = ip;
+    f->readable = !(omode & O_WRONLY);
+    f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+
+    iunlock(ip);
+    return fd;
 }
 
 uint64
@@ -163,4 +243,19 @@ sys_mknod(void){
     
     iunlockput(ip);
     return 0;
+}
+
+uint64
+sys_dup(void){
+    struct file *f;
+    int fd;
+
+    if(argfd(0, 0, &f) < 0){
+        return -1;
+    }
+    if((fd=fdalloc(f)) < 0){
+        return -1;
+    }
+    filedup(f);
+    return fd;
 }

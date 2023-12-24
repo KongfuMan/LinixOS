@@ -7,6 +7,7 @@
 #include "fs.h"
 #include "buf.h"
 #include "defs.h"
+#include "file.h"
 #include <stdbool.h>
 
 
@@ -32,13 +33,17 @@ int con_tx_w;
 //     return c;
 // }
 
-void consoleinit(){
+int consoleread(int user_dst, uint64 dst, int n);
+int consolewrite(int user_dst, uint64 dst, int n);
 
+void consoleinit(){
+    devsw[CONSOLE].read = consoleread;
+    devsw[CONSOLE].write = consolewrite;
     uartinit();
 }
 
 // read `n` bytes from buffer to `dst` of user space
-void consoleread(int user_dst, uint64 dst, int n){
+int consoleread(int user_dst, uint64 dst, int n){
     while(n > 0){
         while(con_tx_r == con_tx_w){
             //myproc sleep
@@ -47,11 +52,13 @@ void consoleread(int user_dst, uint64 dst, int n){
         // char c = deque();
         // copy char c to user space;
     }
+
+    return -1;
 }
 
 // write `n` bytes from `src` of user space
-void consolewrite(int user_dst, uint64 src, int n){
-    
+int consolewrite(int user_dst, uint64 src, int n){
+    return -1;
 }
 
 // called by uart interrupt handler to echo char to console
