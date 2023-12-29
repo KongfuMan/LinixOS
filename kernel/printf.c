@@ -46,7 +46,7 @@ static void printint(int xx, int base, int sign)
         buf[i++] = '-';
 
     while(--i >= 0)
-        uart_putc(buf[i]);
+        uartputc(buf[i]);
 }
 
 // static void
@@ -73,7 +73,7 @@ void printf(char *fmt, ...)
     va_start(ap, fmt);
     for(i = 0; (c = fmt[i] & 0xff) != 0; i++){
         if (c!='%'){
-            uart_putc(c);
+            uartputc(c);
             continue;
         }
 
@@ -94,15 +94,15 @@ void printf(char *fmt, ...)
                 if((s = va_arg(ap, char*)) == 0)
                     s = "(null)";
                 for(; *s; s++)
-                    uart_putc(*s);
+                    uartputc(*s);
                 break;
             case '%':
-                uart_putc('%');
+                uartputc('%');
                 break;
             default:
                 // Print unknown % sequence to draw attention.
-                uart_putc('%');
-                uart_putc(c);
+                uartputc('%');
+                uartputc(c);
             break;
         }
     }

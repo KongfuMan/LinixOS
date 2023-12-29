@@ -31,20 +31,44 @@ void trapinithart(void)
     w_stvec((uint64)kernelvec);
 }
 
+static void cow_handler(){
+    panic("page_fault_handler: not implemented");
+    uint64 va = r_stval();
+    struct proc *p = current_proc();
+    va = PGROUNDDOWN(va);
+    pte_t *pte = walk(p->pagetable, va, 1);
+    uint64 pa = (uint64)kalloc();
+    if (pa == 0){
+        panic("do_page_fault");
+    }
+    *pte = PA2PTE(pa) | PTE_V;
+    decr_ref((void*)pa);
+    //TODO:
+}
+
+static void demanding_page_handler(){
+
+}
+
 /*
 This routine handles page fault. It determines the address,
 and the problem, and then pass it off to the appropriate routines 
 */
-void do_page_fault(){
-    // cases: 1. store/load invlid page:
-    //            a. find a free page to use
-    //            b. no free page, swap out one and reuse
-    //        2. store cow page
-    //        3. store/load page that was swapped out before.
-    //        4.
-    uint64 stval = r_stval();
+void page_fault_handler(){
+    panic("page_fault_handler: not implemented");
     uint64 scause = r_scause();
-    printf("do page fault.\n");
+    uint64 va = r_stval();
+    struct proc *p = current_proc();
+    pagetable_t pagetable = p->pagetable;
+    if (scause == 15){
+        pte_t *pte = &pagetable[PX(2, va)];
+        if (*pte & PTE_COW){
+            cow_handler();
+        }
+        if ((*pte & PTE_V) == 0){
+            demanding_page_handler();
+        }
+    }
 }
 
 void usertrap(){
@@ -74,8 +98,8 @@ void usertrap(){
         intr_on();
         syscall();
     }else if(scause == 13 || scause == 15 || scause == 5 || scause == 7){
-        // loast/store access/page fault
-        do_page_fault();
+        // load/store access/page fault
+        page_fault_handler();
     }else if ((which_dev = devintr()) != 0){
         // known unhandled source
 
@@ -114,7 +138,7 @@ int devintr(){
         int irq = plic_claim();
 
         if(irq == UART0_IRQ){
-            // printf("Uart device intr. \n");
+            uartintr();
         } else if(irq == VIRTIO0_IRQ){
             virtio_disk_intr();
         } else if(irq){

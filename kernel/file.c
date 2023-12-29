@@ -79,9 +79,17 @@ void fileinit(void){
 
 // write `n` bytes from file f to user virtual address `addr`
 // return actual number of bytes read.
-int fileread(struct file* file, uint64 addr, int n){
+int fileread(struct file* f, uint64 uva_dst, int n){
     // 1. copy from user space to kernel space
     // 2. write to file.
+    if (f->type == FD_DEVICE){
+        if (f->major < 0 || f->minor > NDEV || devsw[f->major].read == 0){
+            return -1;
+        }
+        return devsw[f->major].read(1, uva_dst, n);
+    } else if (f->type == FD_INODE){
+        // readi();
+    }
     return 0;
 }
 

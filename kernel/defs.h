@@ -11,8 +11,8 @@ struct stat;
 
 // console.c
 void consoleinit(void);
-void consoleintr(char);
-void consputc(char);
+void consoleintr(int);
+void consputc(int);
 
 // fs.c
 void            fsinit(int);
@@ -53,9 +53,11 @@ int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
 
 // uart.c
-void uartinit(void);
-void uart_putc(char c);
-char uart_getc(void);
+void            uartinit(void);
+void            uartputc(int);
+void            uartputc_sync(int);
+int             uartgetc(void);
+void            uartintr(void);
 
 // kalloc.c
 void kinit(void);

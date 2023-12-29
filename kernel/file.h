@@ -8,6 +8,7 @@ struct file {
     struct inode *ip;  // FD_INODE and FD_DEVICE
     uint off;          // FD_INODE
     short major;       // FD_DEVICE
+    short minor;
 
     // struct sock *sock; // for socket
 };
