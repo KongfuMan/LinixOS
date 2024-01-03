@@ -8,6 +8,7 @@ struct buf;
 struct inode;
 struct file;
 struct stat;
+struct sock;
 
 // console.c
 void consoleinit(void);
@@ -176,3 +177,21 @@ int holding(struct spinlock*);
 int exec(char*, char**);
 
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+// e1000.c
+void            e1000_init(uint32 *);
+void            e1000_intr(void);
+int             e1000_transmit(struct mbuf*);
+
+// net.c
+void            net_rx(struct mbuf*);
+void            net_tx_udp(struct mbuf*, uint32, uint16, uint16);
+void            net_rx_tcp(struct mbuf*, uint16, struct ip*);
+
+// sysnet.c
+void            sockinit(void);
+int             sockalloc(struct file **, uint32, uint16, uint16);
+void            sockclose(struct sock *);
+int             sockread(struct sock *, uint64, int);
+int             sockwrite(struct sock *, uint64, int);
+void            sockrecvudp(struct mbuf*, uint32, uint16, uint16);

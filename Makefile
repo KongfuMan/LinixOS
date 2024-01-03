@@ -54,10 +54,10 @@ OBJS_KCSAN = \
 
 
 # ifeq ($(LAB),net)
-# OBJS += \
-# 	$K/e1000.o \
-# 	$K/net.o \
-# 	$K/sysnet.o \
+OBJS += \
+	$K/e1000.o \
+	$K/net.o \
+	$K/sysnet.o \
 # 	$K/pci.o
 # endif
 

@@ -8,7 +8,7 @@ int main(){
     int n;
     while(1){
         if ((n = read(fd, (void *)args, MAXARG)) < 0){
-            exit(1);
+            // exit(1);
         }
     }
 

@@ -13,6 +13,7 @@
 #include "riscv.h"
 #include "proc.h"
 #include "buf.h"
+#include "net.h"
 #include "defs.h"
 #include "memlayout.h"
 

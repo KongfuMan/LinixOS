@@ -6,6 +6,7 @@
 #include "spinlock.h"
 #include "sleeplock.h"
 #include "proc.h"
+#include "net.h"
 #include "defs.h"
 
 

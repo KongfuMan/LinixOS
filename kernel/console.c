@@ -21,6 +21,7 @@
 #include "fs.h"
 #include "file.h"
 #include "memlayout.h"
+#include "net.h"
 #include "defs.h"
 
 #define BACKSPACE 0x100

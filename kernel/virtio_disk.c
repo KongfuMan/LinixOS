@@ -14,6 +14,7 @@
 #include "proc.h"
 #include "fs.h"
 #include "buf.h"
+#include "net.h"
 #include "defs.h"
 #include "virtio.h"
 
