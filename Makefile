@@ -297,6 +297,13 @@ CPUS := 1
 endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)
+UDPFWDPORT = $(FWDPORT)
+TCPFWDPORT = $(shell expr `id -u` % 5000 + 26999)
+TCPPORT = 3000
+UDPPORT = 2000
+
+CFLAGS += -DTCPPORT=$(TCPPORT)
+CFLAGS += -DUDPPORT=$(UDPPORT)
 
 QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m $(DRAM_SIZE)M -smp $(CPUS) -nographic
 QEMUOPTS += -global virtio-mmio.force-legacy=false
@@ -304,9 +311,11 @@ QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
 # ifeq ($(LAB),net)
-QEMUOPTS += -netdev user,id=net0,hostfwd=udp::$(FWDPORT)-:2000 -object filter-dump,id=net0,netdev=net0,file=packets.pcap
+QEMUOPTS += -netdev user,id=net0,hostfwd=udp::$(UDPFWDPORT)-:$(UDPPORT),hostfwd=tcp::$(TCPFWDPORT)-:$(TCPPORT) -object filter-dump,id=net0,netdev=net0,file=packets.pcap
 QEMUOPTS += -device e1000,netdev=net0,bus=pcie.0
 # endif
+
+QEMUOPTS += -D /home/jaychen/Documents/qemu.log
 
 qemu: $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)

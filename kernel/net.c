@@ -13,8 +13,9 @@
 #include "net.h"
 #include "defs.h"
 #include "memlayout.h"
+#include "tcp.h"
 
-static uint32 local_ip = MAKE_IP_ADDR(10, 0, 2, 15); // qemu's idea of the guest IP
+uint32 local_ip = MAKE_IP_ADDR(10, 0, 2, 15); // qemu's idea of the guest IP
 static uint8 local_mac[ETHADDR_LEN] = { 0x52, 0x54, 0x00, 0x12, 0x34, 0x56 };
 static uint8 broadcast_mac[ETHADDR_LEN] = { 0xFF, 0XFF, 0XFF, 0XFF, 0XFF, 0XFF };
 
@@ -315,7 +316,7 @@ net_rx_udp(struct mbuf *m, uint16 len, struct ip *iphdr)
     return;
 
 fail:
-  mbuffree(m);
+    mbuffree(m);
 }
 
 // receives an IP packet
@@ -381,8 +382,22 @@ void net_rx(struct mbuf *m)
 }
 
 void net_rx_tcp(struct mbuf *m, uint16 len, struct ip *iphdr){
-    printf("net_rx_tcp");
-    while(1);
+    tcphdr_t  *tcphdr;
+
+    tcphdr = mbufpullhdr(m, *tcphdr);
+    if (!tcphdr)
+        goto fail;
+
+    uint32 src_ip = ntohl(iphdr->ip_src);
+    uint32 dst_ip = ntohl(iphdr->ip_dst);
+    uint16 src_port = htons(tcphdr->src_port);
+    uint16 dst_port = htons(tcphdr->dst_port);
+
+    //TODO: recieved the tcp data and push socket mbufq.
+
+    return;
+fail:
+    mbuffree(m);
 }
 
 void net_tx_tcp(struct mbuf *m,  uint32 raddr){

@@ -1,9 +1,9 @@
 // tcp header
 typedef struct {
-    uint16  sport;       //source port
-    uint16  dport;       //destination port
-    uint32  seqno;         //sequence number
-    uint32  ackno; 
+    uint16  src_port;       //source port
+    uint16  dst_port;       //destination port
+    uint32  seq_no;         //sequence number
+    uint32  ack_no; 
     uint8   rsv1:4,      // 4 reserved bits
             len:4;       // header length
     uint8   fin:1,       // FIN
@@ -17,7 +17,7 @@ typedef struct {
     uint16  window;      // recv window
     uint16  checksum;
     uint16  urgptr;      // urgent data pointer
-}  tcphdr_t; //__attribute__ ((packed))
+} __attribute__ ((packed)) tcphdr_t; 
 
 // #define CWR (1<<7)
 // #define ECE (1<<6)

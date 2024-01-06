@@ -33,8 +33,8 @@ int bind(int, uint32, uint16);
 int sendto(int, const void*, int, uint32, uint16);
 
 // called by client for connection-oriented protocol
-// socket fd, dst, src port, dest port
-int connect(int, uint32, uint16, uint16);
+// socket fd, dst_ip, dst_port
+int connect(int, uint32, uint16);
 
 
 // ulib.c

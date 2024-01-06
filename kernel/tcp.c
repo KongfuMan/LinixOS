@@ -67,23 +67,24 @@ compute_checksum(uint16* words, uint16 byte_count,  uint32 ip_src, uint32 ip_dst
 
 // client initiate 3-way handshake to establish tcp connection
 // 
-void tcp_connect(uint32 raddr, uint16 sport, uint16 dport){
-    // struct mbuf *m = mbufalloc(MBUF_DEFAULT_HEADROOM);
-    // if (!m)
-    //     return;
-    // tcphdr_t *tcphdr;
-    // tcphdr = mbufpushhdr(m, *tcphdr);
-    // memset(tcphdr, 0, sizeof(*tcphdr));
-    // tcphdr->sport = sport;
-    // tcphdr->dport = dport;
-    // tcphdr->seqno = 12345;    // generate an random intial sequence number
-    // tcphdr->ackno = 0;
-    // tcphdr->len = htons(m->len);
-    // tcphdr->syn = 1;
-    // tcphdr->window = 100;
-    // tcphdr->checksum = compute_checksum((uint16*)tcphdr, sizeof(tcphdr), MAKE_IP_ADDR(10, 0, 2, 15), raddr);
+void tcp_connect(uint32 dst_ip, uint16 src_port, uint16 dst_port){
+    struct mbuf *m = mbufalloc(MBUF_DEFAULT_HEADROOM);
+    if (!m)
+        return;
+    tcphdr_t *tcphdr;
+    tcphdr = mbufpushhdr(m, *tcphdr);
+    memset(tcphdr, 0, sizeof(*tcphdr));
+    tcphdr->src_port = htons(src_port);
+    tcphdr->dst_port = htons(dst_port);
+    tcphdr->seq_no = 12345;    // generate an random intial sequence number
+    tcphdr->ack_no = 0;
+    tcphdr->len = m->len / 4;
+    tcphdr->syn = 1;
+    tcphdr->window = htons(8192);
+    // uint16 checksum = compute_checksum((uint16*)tcphdr, sizeof(tcphdr), MAKE_IP_ADDR(10, 0, 2, 15), dst_ip);
+    // tcphdr->checksum = htons(checksum);
 
-    // net_tx_tcp(m, raddr);
+    net_tx_tcp(m, dst_ip);
 }
 
 void tcp_recv(struct mbuf *m){

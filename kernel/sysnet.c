@@ -11,6 +11,8 @@
 #include "file.h"
 #include "stat.h"
 
+extern uint32 local_ip;
+
 struct sock {
     uint16 family;          // protocol family
     uint16 protocol;        // transport layer protocol
@@ -40,6 +42,7 @@ sockinit(void){
 int
 sockalloc(struct file **f, uint16 family, uint16 type, uint16 protocol){
     struct sock *sock = (struct sock *)kalloc();
+    memset(sock, 0, sizeof(*sock));
     sock->family = family;
     sock->type = type;
     sock->protocol = protocol;
@@ -129,14 +132,18 @@ sockbind(struct sock *sock, uint32 src_ip, uint16 src_port){
     pos = sockets;
     while (pos) {
         if (pos->src_ip == src_ip && pos->src_port == src_port){
-            // bind failed, ip/port already in use.
+            // src_ip/src_port already in use.
             return -1;
         }
         pos = pos->next;
     }
-    sock->src_ip = src_ip;
-    sock->src_port = src_port;
 
+    if (src_ip == 0){
+        sock->src_ip = local_ip;
+    }else{
+        sock->src_ip = src_ip;
+    }
+    sock->src_port = src_port;
     return 0;
 }
 
@@ -172,27 +179,13 @@ found:
 }
 
 int
-sockconn(int sockfd, uint32 dest_ip, uint16 src_port, uint16 dest_port){
-    if (sockfd < 0 || sockfd > NOFILE - 1){
-        return -1;
-    }
+sockconn(struct sock *sock, uint32 dest_ip, uint16 dest_port){
+    sock->dst_ip = dest_ip;
+    sock->dst_port = dest_port;
 
-    struct proc *p;
-    struct file *f;
-    p = current_proc();
-    f = p->ofile[sockfd];
-    if (f->type != FD_SOCK || f->sock == 0){
-        return -1;
-    }
-
-    f->sock->dst_ip = dest_ip;
-    f->sock->src_port = src_port;
-    f->sock->dst_port = dest_port;
-    mbufq_init(&f->sock->rxq);
-
-    if (f->sock->protocol == 0){
+    if (sock->protocol == IPPROTO_TCP){
         // tcp
-        tcp_connect(f->sock->dst_ip, f->sock->src_port, f->sock->dst_port);
+        tcp_connect(sock->dst_ip, sock->src_port, sock->dst_port);
     }
 
     return 0;

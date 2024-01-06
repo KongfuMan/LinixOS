@@ -201,9 +201,9 @@ void            sockclose(struct sock *);
 int             sockread(struct sock *, uint64, int);
 int             sockwrite(struct sock *, uint64, int);
 void            sockrecvudp(struct mbuf*, uint32, uint16, uint16);
-//                       sockfd, remote ip addr, local port, remote port.
-int             sockconn(int, uint32, uint16, uint16);
-//                        sock,        src_ip,  src_port
+//                              sock, dst_ip,  remote port.
+int             sockconn(struct sock*, uint32, uint16);
+//                              sock, src_ip,  src_port
 int             sockbind(struct sock*, uint32 , uint16);
 
 //tcp.c

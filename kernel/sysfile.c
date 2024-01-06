@@ -335,17 +335,17 @@ sys_bind(void){
 uint64
 sys_connect(void){
     struct file *f;
-    int fd;
     int sockfd;
-    uint32 dstip;
-    uint32 srcport;
-    uint32 dstport;
-    argint(0, (int*)&sockfd);   
-    argint(1, (int*)&dstip);
-    argint(2, (int*)&srcport);
-    argint(3, (int*)&dstport);
+    uint32 dst_ip;
+    uint32 dst_port;
+    argint(1, (int*)&dst_ip);
+    argint(2, (int*)&dst_port);
 
-    if (sockconn(sockfd, dstip, srcport, dstport) < 0){
+    if(argfd(0, &sockfd, &f) < 0){
+        return -1;
+    }
+
+    if (sockconn(f->sock, dst_ip, dst_port) < 0){
         return -1;
     }
 
