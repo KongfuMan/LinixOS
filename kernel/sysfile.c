@@ -234,7 +234,17 @@ sys_read(void){
 
 uint64
 sys_write(void){
-    return -1;
+    struct file *f;
+    int fd;
+    int n;
+    uint64 p;
+
+    argaddr(1, &p);
+    argint(2, &n);
+    if(argfd(0, &fd, &f) < 0){
+        return -1;
+    }
+    return filewrite(f, p, n);
 }
 
 uint64
@@ -268,4 +278,76 @@ sys_dup(void){
     }
     filedup(f);
     return fd;
+}
+
+uint64
+sys_close(void)
+{
+  int fd;
+  struct file *f;
+
+  if(argfd(0, &fd, &f) < 0)
+    return -1;
+  current_proc()->ofile[fd] = 0;
+  fileclose(f);
+  return 0;
+}
+
+uint64
+sys_socket(void){
+    struct file *f;
+    int fd;
+    uint16 domain, type, protocol;
+    argint(0, (int *)&domain);
+    argint(1, (int *)&type);
+    argint(2, (int *)&protocol);
+
+    if(sockalloc(&f, domain, type, protocol) != 0){
+        return -1;
+    }
+    if ((fd = fdalloc(f)) < 0){
+        fileclose(f);
+        return -1;
+    }
+    return fd;
+}
+
+uint64
+sys_bind(void){
+    // sockfd, src_ip, src_port
+    // int bind(int, uint32, uint16);
+    
+    int fd;
+    uint32 src_ip;
+    uint16 src_port;
+
+    struct file *f;
+    if(argfd(0, &fd, &f) < 0){
+        return -1;
+    }
+
+    argint(1, (int*)&src_ip);
+    argint(2, (int*)&src_port);
+
+    return sockbind(f->sock, src_ip, src_port);
+}
+
+uint64
+sys_connect(void){
+    struct file *f;
+    int fd;
+    int sockfd;
+    uint32 dstip;
+    uint32 srcport;
+    uint32 dstport;
+    argint(0, (int*)&sockfd);   
+    argint(1, (int*)&dstip);
+    argint(2, (int*)&srcport);
+    argint(3, (int*)&dstport);
+
+    if (sockconn(sockfd, dstip, srcport, dstport) < 0){
+        return -1;
+    }
+
+    return 0;
 }

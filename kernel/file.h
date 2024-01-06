@@ -1,6 +1,6 @@
 // an open file
 struct file {
-    enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE } type;
+    enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE, FD_SOCK } type;
     int ref; // reference count
     char readable;
     char writable;
@@ -10,7 +10,7 @@ struct file {
     short major;       // FD_DEVICE
     short minor;
 
-    // struct sock *sock; // for socket
+    struct sock *sock; // FD_SOCK
 };
 
 #define major(dev)  ((dev) >> 16 & 0xFFFF)

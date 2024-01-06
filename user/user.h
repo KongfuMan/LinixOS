@@ -23,6 +23,20 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 
+// domain, type, protocol
+int socket(int,int,int);
+// sockfd, src_ip, src_port
+int bind(int, uint32, uint16);
+
+// send data using non-connection-oriented protocol
+// sockfd, addr, len, dst_ip, dst_port
+int sendto(int, const void*, int, uint32, uint16);
+
+// called by client for connection-oriented protocol
+// socket fd, dst, src port, dest port
+int connect(int, uint32, uint16, uint16);
+
+
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);

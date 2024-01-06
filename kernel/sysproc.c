@@ -13,8 +13,8 @@
 
 uint64
 sys_exit(void){
-  panic("sys_exit: not impplemented.");
-  return -1;
+  // panic("sys_exit: not impplemented.");
+  return 0;
 }
 
 uint64
@@ -28,4 +28,16 @@ sys_wait(void){
   uint64 p;
   argaddr(0, &p);
   return wait(p);
+}
+
+uint64
+sys_sbrk(void){
+  uint64 addr;
+  int n;
+
+  argint(0, &n);
+  addr = current_proc()->sz;
+  if(growproc(n) < 0)
+    return -1;
+  return addr;
 }

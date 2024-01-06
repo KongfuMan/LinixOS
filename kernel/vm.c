@@ -30,6 +30,12 @@ kvmmake(void){
 
     kvmmap(kpgtable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
 
+    // PCI-E ECAM (configuration space), for pci.c
+    kvmmap(kpgtable, 0x30000000L, 0x30000000L, 0x10000000, PTE_R | PTE_W);
+
+    // pci.c maps the e1000's registers here.
+    kvmmap(kpgtable, 0x40000000L, 0x40000000L, 0x20000, PTE_R | PTE_W);
+
     kvmmap(kpgtable, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
 
     kvmmap(kpgtable, (uint64)etext, (uint64)etext, PHYSTOP - (uint64)etext, PTE_R | PTE_W);

@@ -472,3 +472,17 @@ exit(int status){
     panic("exit");
 }
 
+uint64
+growproc(int n){
+    uint64 sz;
+    struct proc *p = current_proc();
+
+    if ((sz = uvmalloc(p->pagetable, p->sz, p->sz + n, PTE_W)) == 0){
+        return -1;
+    }else if (sz < 0){
+        sz = uvmdealloc(p->pagetable, p->sz + n, p->sz);
+    }
+
+    p->sz = sz;
+    return sz;
+}

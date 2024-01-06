@@ -56,7 +56,7 @@ This routine handles page fault. It determines the address,
 and the problem, and then pass it off to the appropriate routines 
 */
 void page_fault_handler(){
-    panic("page_fault_handler: not implemented");
+    // panic("page_fault_handler: not implemented");
     uint64 scause = r_scause();
     uint64 va = r_stval();
     struct proc *p = current_proc();
@@ -105,7 +105,8 @@ void usertrap(){
         // known unhandled source
 
     }else{
-        printf("unhandled ex");
+        printf("scause: %d. \n", scause);
+        panic("usertrap: unhandled exception.\n");
     }
     
     usertrapret();
@@ -115,7 +116,7 @@ void kerneltrap(){
     int which_dev = 0;
     uint64 sepc = r_sepc();
     uint64 sstatus = r_sstatus();
-    // uint64 scause = r_scause();
+    uint64 scause = r_scause();
 
     if((which_dev = devintr()) == 0){
         //unknown
@@ -142,8 +143,10 @@ int devintr(){
             uartintr();
         } else if(irq == VIRTIO0_IRQ){
             virtio_disk_intr();
+        } else if(irq == E1000_IRQ){
+            e1000_intr();
         } else if(irq){
-            printf("unexpected interrupt irq=%d\n", irq);
+            printf("unknown irq=%d\n", irq);
         }
 
         // the PLIC allows each device to raise at most one
@@ -175,6 +178,9 @@ int devintr(){
         w_sip(r_sip() & ~2);
         return 2;
     }
+
+    printf("scause: %d. \n", scause);
+    panic("kerneltrap: unhandled exception.\n");
 
     return 0;
 }

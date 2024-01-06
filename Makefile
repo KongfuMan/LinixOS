@@ -30,6 +30,7 @@ OBJS = \
 	$K/file.o \
 	$K/inode.o \
     $K/sysproc.o \
+	$K/tcp.o \
 #   $K/log.o \
 #   $K/pipe.o \
 
@@ -53,12 +54,12 @@ OBJS_KCSAN = \
 # endif
 
 
-# ifeq ($(LAB),net)
+# ifeq ($(LAB),x)
 OBJS += \
 	$K/e1000.o \
 	$K/net.o \
 	$K/sysnet.o \
-# 	$K/pci.o
+	$K/pci.o
 # endif
 
 
@@ -109,7 +110,7 @@ DRAM_SIZE := 256
 CFLAGS += -DDRAM_SIZE=$(DRAM_SIZE)
 
 # ifeq ($(LAB),net)
-# CFLAGS += -DNET_TESTS_PORT=$(SERVERPORT)
+CFLAGS += -DNET_TESTS_PORT=$(SERVERPORT)
 # endif
 
 # ifdef KCSAN
@@ -257,8 +258,8 @@ UPROGS=\
 
 
 # ifeq ($(LAB),net)
-# UPROGS += \
-# 	$U/_nettests
+UPROGS += \
+	$U/_nettests
 # endif
 
 UEXTRA=
@@ -302,10 +303,10 @@ QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
-ifeq ($(LAB),net)
+# ifeq ($(LAB),net)
 QEMUOPTS += -netdev user,id=net0,hostfwd=udp::$(FWDPORT)-:2000 -object filter-dump,id=net0,netdev=net0,file=packets.pcap
 QEMUOPTS += -device e1000,netdev=net0,bus=pcie.0
-endif
+# endif
 
 qemu: $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
@@ -317,7 +318,7 @@ qemu-gdb: $K/kernel .gdbinit fs.img
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
-ifeq ($(LAB),net)
+# ifeq ($(LAB),net)
 # try to generate a unique port for the echo server
 SERVERPORT = $(shell expr `id -u` % 5000 + 25099)
 
@@ -326,7 +327,7 @@ server:
 
 ping:
 	python3 ping.py $(FWDPORT)
-endif
+# endif
 
 ##
 ##  FOR testing lab grading script

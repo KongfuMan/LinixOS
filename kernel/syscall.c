@@ -96,7 +96,7 @@ extern uint64 sys_exec(void);
 // extern uint64 sys_chdir(void);
 extern uint64 sys_dup(void);
 // extern uint64 sys_getpid(void);
-// extern uint64 sys_sbrk(void);
+extern uint64 sys_sbrk(void);
 // extern uint64 sys_sleep(void);
 // extern uint64 sys_uptime(void);
 extern uint64 sys_open(void);
@@ -105,7 +105,10 @@ extern uint64 sys_mknod(void);
 // extern uint64 sys_unlink(void);
 // extern uint64 sys_link(void);
 // extern uint64 sys_mkdir(void);
-// extern uint64 sys_close(void);
+extern uint64 sys_close(void);
+extern uint64 sys_socket(void);
+extern uint64 sys_bind(void);
+extern uint64 sys_connect(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -121,7 +124,7 @@ static uint64 (*syscalls[])(void) = {
 // [SYS_chdir]   sys_chdir,
 [SYS_dup]     sys_dup,
 // [SYS_getpid]  sys_getpid,
-// [SYS_sbrk]    sys_sbrk,
+[SYS_sbrk]    sys_sbrk,
 // [SYS_sleep]   sys_sleep,
 // [SYS_uptime]  sys_uptime,
 [SYS_open]    sys_open,
@@ -130,7 +133,10 @@ static uint64 (*syscalls[])(void) = {
 // [SYS_unlink]  sys_unlink,
 // [SYS_link]    sys_link,
 // [SYS_mkdir]   sys_mkdir,
-// [SYS_close]   sys_close,
+[SYS_close]   sys_close,
+[SYS_socket]  sys_socket,
+[SYS_bind]  sys_bind,
+[SYS_connect] sys_connect,
 };
 
 void syscall(){

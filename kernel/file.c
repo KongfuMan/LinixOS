@@ -34,7 +34,6 @@ struct file* filealloc(){
 
 // Close file f.  (Decrement ref count, close when reaches 0.)
 void fileclose(struct file* f){
-    panic("fileclose not implemented");
     struct file ff;
 
     acquire(&ftable.lock);
@@ -55,6 +54,9 @@ void fileclose(struct file* f){
         // begin_op();
         iput(ff.ip);
         // end_op();
+    }
+    else if(ff.type == FD_SOCK){
+        sockclose(ff.sock);
     }
 }
 
@@ -80,16 +82,18 @@ void fileinit(void){
 
 // write `n` bytes from file f to user virtual address `addr`
 // return actual number of bytes read.
-int fileread(struct file* f, uint64 uva_dst, int n){
+int fileread(struct file* f, uint64 dst_uva, int n){
     // 1. copy from user space to kernel space
     // 2. write to file.
     if (f->type == FD_DEVICE){
         if (f->major < 0 || f->minor > NDEV || devsw[f->major].read == 0){
             return -1;
         }
-        return devsw[f->major].read(1, uva_dst, n);
+        return devsw[f->major].read(1, dst_uva, n);
     } else if (f->type == FD_INODE){
-        // readi();
+        return readi(f->ip, 1, dst_uva, f->off, n);
+    } else if (f->type == FD_SOCK){
+        return sockread(f->sock, dst_uva, n);
     }
     return 0;
 }
@@ -100,6 +104,20 @@ int filestat(struct file* file, uint64 addr){
 
 // write `n` bytes from file f to user virtual address `addr`
 // return actual number of bytes written.
-int filewrite(struct file* file, uint64 addr, int n){
-    return 0;
+int
+filewrite(struct file* f, uint64 addr, int n){
+
+    if (f->type == FD_DEVICE){
+        if (f->major < 0 || f->major > NDEV || devsw[f->major].write == 0 ){
+            panic("");
+        }
+        return devsw[f->major].write(1, addr, n);
+    }else if(f->type == FD_INODE){
+        return writei(f->ip, 1, addr, f->off, n);
+    }else if (f->type == FD_SOCK){
+        return sockwrite(f->sock, addr, n);
+    }
+
+    // unknow file type
+    return -1;
 }

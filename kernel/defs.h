@@ -49,9 +49,9 @@ struct file*    filealloc(void);
 void            fileclose(struct file*);
 struct file*    filedup(struct file*);
 void            fileinit(void);
-int             fileread(struct file*, uint64, int n);
-int             filestat(struct file*, uint64 addr);
-int             filewrite(struct file*, uint64, int n);
+int             fileread(struct file*, uint64, int);
+int             filestat(struct file*, uint64);
+int             filewrite(struct file*, uint64, int);
 
 // uart.c
 void            uartinit(void);
@@ -123,6 +123,7 @@ pagetable_t     proc_pagetable(struct proc*);
 void            proc_freepagetable(pagetable_t, uint64);
 int             wait(uint64);
 void            exit(int);
+uint64          growproc(int);
 
 //trap.c
 void trapinit(void);
@@ -178,6 +179,9 @@ int exec(char*, char**);
 
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
 
+// pci.c
+void            pci_init();
+
 // e1000.c
 void            e1000_init(uint32 *);
 void            e1000_intr(void);
@@ -187,11 +191,20 @@ int             e1000_transmit(struct mbuf*);
 void            net_rx(struct mbuf*);
 void            net_tx_udp(struct mbuf*, uint32, uint16, uint16);
 void            net_rx_tcp(struct mbuf*, uint16, struct ip*);
+void            net_tx_tcp(struct mbuf*, uint32);
+// unsigned short  in_cksum(const unsigned char*, int);
 
 // sysnet.c
 void            sockinit(void);
-int             sockalloc(struct file **, uint32, uint16, uint16);
+int             sockalloc(struct file **, uint16, uint16, uint16);
 void            sockclose(struct sock *);
 int             sockread(struct sock *, uint64, int);
 int             sockwrite(struct sock *, uint64, int);
 void            sockrecvudp(struct mbuf*, uint32, uint16, uint16);
+//                       sockfd, remote ip addr, local port, remote port.
+int             sockconn(int, uint32, uint16, uint16);
+//                        sock,        src_ip,  src_port
+int             sockbind(struct sock*, uint32 , uint16);
+
+//tcp.c
+void            tcp_connect(uint32, uint16, uint16);

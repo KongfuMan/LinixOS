@@ -38,6 +38,9 @@
 #define VIRTIO0 0x10001000
 #define VIRTIO0_IRQ 1
 
+// E1000
+#define E1000_IRQ 33
+
 // Kernel stack
 #define KSTACK(p) (TRAMPOLINE - (p+1)*2*PGSIZE)
 
