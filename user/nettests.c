@@ -2,9 +2,12 @@
 #include "kernel/net.h"
 #include "user.h"
 
+static const uint32 dst_ip = MAKE_IP_ADDR(192, 168, 1, 243);
+static const uint16 dst_port = 1234;
+
 int tcp_client(uint16 dst_port){
     int sockfd;
-    uint32 dst_ip;
+    // uint32 dst_ip = MAKE_IP_ADDR(192, 168, 1, 243);
     int domain = 0, type = 0, protocol = IPPROTO_TCP;
     if ((sockfd = socket(domain, type, protocol)) < 0){
         fprintf(2, "create tcp sock failed. \n");
@@ -16,7 +19,6 @@ int tcp_client(uint16 dst_port){
     }
     fprintf(1, "bind tcp sock success. \n");
 
-    dst_ip = (192 << 24) | (168 << 16) | (1 << 8) | (243 << 0);
     // you can send a TCP packet to any Internet address
     // by using a different dst.
     if(connect(sockfd, dst_ip, dst_port) < 0){
@@ -28,21 +30,16 @@ int tcp_client(uint16 dst_port){
 
 void udp_client(uint16 dst_port){
     int sockfd;
-    uint32 dst_ip;
     int domain = 0, type = 0, protocol = IPPROTO_UDP;
     if ((sockfd = socket(domain, type, protocol)) < 0){
         fprintf(2, "create udp sock failed. \n");
         exit(1);
     }
-
     if (bind(sockfd, 0, UDPPORT) < 0){
         fprintf(2, "bind udp sock failed. \n");
         exit(1);
     }
-
     fprintf(1, "bind udp sock success. \n");
-    
-    dst_ip = MAKE_IP_ADDR(192, 168, 1, 243);
     
     char *obuf = "Liang: a message from xv6!";
     // send udp message
@@ -64,7 +61,6 @@ void udp_client(uint16 dst_port){
 }
 
 int main(){
-    uint16 dst_port = 1234;
     fprintf(1, "run socket client.\n");
     tcp_client(dst_port);
     while(1);

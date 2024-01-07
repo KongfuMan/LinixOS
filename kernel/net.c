@@ -15,9 +15,9 @@
 #include "memlayout.h"
 #include "tcp.h"
 
-uint32 local_ip = MAKE_IP_ADDR(10, 0, 2, 15); // qemu's idea of the guest IP
-static uint8 local_mac[ETHADDR_LEN] = { 0x52, 0x54, 0x00, 0x12, 0x34, 0x56 };
-static uint8 broadcast_mac[ETHADDR_LEN] = { 0xFF, 0XFF, 0XFF, 0XFF, 0XFF, 0XFF };
+const uint32 local_ip = MAKE_IP_ADDR(10, 0, 2, 15); // qemu's idea of the guest IP
+static const uint8 local_mac[ETHADDR_LEN] = { 0x52, 0x54, 0x00, 0x12, 0x34, 0x56 };
+static const uint8 broadcast_mac[ETHADDR_LEN] = { 0xFF, 0XFF, 0XFF, 0XFF, 0XFF, 0XFF };
 
 // Strips data from the start of the buffer and returns a pointer to it.
 // Returns 0 if less than the full requested length is available.
@@ -130,7 +130,7 @@ mbufq_init(struct mbufq *q)
 
 // This code is lifted from FreeBSD's ping.c, and is copyright by the Regents
 // of the University of California.
-static unsigned short
+unsigned short
 in_cksum(const unsigned char *addr, int len)
 {
     int nleft = len;
@@ -401,5 +401,8 @@ fail:
 }
 
 void net_tx_tcp(struct mbuf *m,  uint32 raddr){
+    // TODO: prepend header 
+
+    
     net_tx_ip(m, IPPROTO_TCP, raddr);
 }

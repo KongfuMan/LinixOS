@@ -23,11 +23,12 @@ struct sock {
     uint16 dst_port;       // the destination port
     struct spinlock lock;   // protects the rxq
     struct mbufq rxq;       // a queue of packets waiting to be received
+    struct sock *next;      // the next socket in the list
 
     // TCP specific fields
     uint32 seq;             // sequence number
     uint32 ack;
-    struct sock *next;      // the next socket in the list
+    
 };
 
 static struct spinlock socklock;
@@ -58,12 +59,6 @@ sockalloc(struct file **f, uint16 family, uint16 type, uint16 protocol){
     (*f)->readable = 1;
     (*f)->writable = 1;
     (*f)->sock = sock;
-
-    // prepend to list of sockets
-    acquire(&socklock);
-    sock->next = sockets;
-    sockets = sock;
-    release(&socklock);
 
     return 0;
 }
@@ -104,21 +99,23 @@ sockwrite(struct sock *si, uint64 src_uva, int n){
     if (!m)
         return -1;
 
+    // append the payload to the mbuf.
     if (copyin(p->pagetable, mbufput(m, n), src_uva, n) == -1) {
         mbuffree(m);
         return -1;
     }
 
-    // TODO: hard code for test
-    // dst_ip:192.168.1.243, dst_port:1234
-    uint32 dst_ip = (192 << 24) | (168 << 16) | (1 << 8) | (243 << 0);
-    uint16 dst_port = 1234;
-
-    si->dst_ip = dst_ip;
-    si->dst_port = dst_port;
-
     if (si->protocol == IPPROTO_UDP){
+        // TODO: hard code for test udp
+        // dst_ip:192.168.1.243, dst_port:1234
+        uint32 dst_ip = (192 << 24) | (168 << 16) | (1 << 8) | (243 << 0);
+        uint16 dst_port = 1234;
+
+        si->dst_ip = dst_ip;
+        si->dst_port = dst_port;
         net_tx_udp(m, si->dst_ip, si->src_port, si->dst_port);
+    }else if (si->protocol == IPPROTO_TCP){
+        net_tx_tcp(m, si->dst_ip);
     }
 
     return n;
@@ -126,9 +123,13 @@ sockwrite(struct sock *si, uint64 src_uva, int n){
 
 int
 sockbind(struct sock *sock, uint32 src_ip, uint16 src_port){
+    if (src_ip == 0){
+        // for empty value, use default local ip.
+        src_ip = local_ip;
+    }
+
     // must check src_port not in use.
     struct sock *pos;
-
     pos = sockets;
     while (pos) {
         if (pos->src_ip == src_ip && pos->src_port == src_port){
@@ -138,12 +139,15 @@ sockbind(struct sock *sock, uint32 src_ip, uint16 src_port){
         pos = pos->next;
     }
 
-    if (src_ip == 0){
-        sock->src_ip = local_ip;
-    }else{
-        sock->src_ip = src_ip;
-    }
+    sock->src_ip = src_ip;
     sock->src_port = src_port;
+
+    // prepend to list of sockets
+    acquire(&socklock);
+    sock->next = sockets;
+    sockets = sock;
+    release(&socklock);
+
     return 0;
 }
 
@@ -164,6 +168,7 @@ sockrecvudp(struct mbuf *m, uint32 dst_ip, uint16 src_port, uint16 dst_port){
         si = si->next;
     }
 
+    printf("No socket found receiving the udp packet, drop it. \n");
     release(&socklock);
     mbuffree(m);
     return;

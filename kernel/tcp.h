@@ -17,7 +17,7 @@ typedef struct {
     uint16  window;      // recv window
     uint16  checksum;
     uint16  urgptr;      // urgent data pointer
-} __attribute__ ((packed)) tcphdr_t; 
+} tcphdr_t;  //__attribute__ ((packed))
 
 // #define CWR (1<<7)
 // #define ECE (1<<6)
