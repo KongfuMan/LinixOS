@@ -346,8 +346,8 @@ ping:
 # GRADEFLAGS += -v
 # endif
 
-# print-gdbport:
-# 	@echo $(GDBPORT)
+print-gdbport:
+	@echo $(GDBPORT)
 
 # grade:
 # 	@echo $(MAKE) clean
