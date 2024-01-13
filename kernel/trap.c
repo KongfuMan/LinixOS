@@ -47,8 +47,9 @@ static void cow_handler(){
     //TODO:
 }
 
-static void demanding_page_handler(){
-
+static void demanding_page_handler(uint64 va){
+    // alloc a physical page
+    // uint64 pa = kalloc();
 }
 
 /*
@@ -67,7 +68,7 @@ void page_fault_handler(){
             cow_handler();
         }
         if ((*pte & PTE_V) == 0){
-            demanding_page_handler();
+            demanding_page_handler(va);
         }
     }
 }
@@ -117,6 +118,10 @@ void kerneltrap(){
     uint64 sepc = r_sepc();
     uint64 sstatus = r_sstatus();
     uint64 scause = r_scause();
+
+    if (scause == 13){
+        panic("kerneltrap: unhandled exception");
+    }
 
     if((which_dev = devintr()) == 0){
         //unknown
@@ -171,6 +176,19 @@ int devintr(){
         acquire(&tickslock);
         ticks++;
         release(&tickslock);
+
+        struct proc *p = current_proc();
+        if (p){
+            acquire(&p->lock);
+            p->ticks++;
+            if (p->total > 0 && p->ticks == p->total && p->alarmstate == 0){
+                p->ticks = 0;
+                *p->alarmframe = *p->trapframe;
+                p->trapframe->epc = p->handler;
+                p->alarmstate = 1;
+            }
+            release(&p->lock);
+        }
 
         // acknowledge the software interrupt by clearing
         // the SSIP bit in sip.

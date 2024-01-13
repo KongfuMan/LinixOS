@@ -142,8 +142,7 @@ proc_pagetable(struct proc *p){
     return pgtable;
 }
 
-// Free a process's page table, and free the
-// physical memory it refers to.
+// Free all physical memory pages as well as multi-level page table
 void
 proc_freepagetable(pagetable_t pagetable, uint64 sz){
     uvmunmap(pagetable, TRAMPOLINE, 1, 0);
@@ -178,15 +177,26 @@ found:
 
     // Allocate a trapframe page.
     if ((p->trapframe = (struct trapframe*)kalloc()) == 0){
-        // TODO: freeproc(p);
+        freeproc(p);
         release(&p->lock);
         return 0;
     }
 
+    // Allocate page for alarm frame
+    if ((p->alarmframe = (struct trapframe*)kalloc()) == 0){
+        freeproc(p);
+        release(&p->lock);
+        return 0;
+    }
+    p->ticks = 0;
+    p->total = 0;
+    p->handler = 0;
+    p->alarmstate = 0; 
+
     // An empty user page table.
     p->pagetable = proc_pagetable(p);
     if (p->pagetable == 0){
-        // TODO: freeproc(p);
+        freeproc(p);
         release(&p->lock);
         return 0;
     }
@@ -340,6 +350,12 @@ freeproc(struct proc *p){
         kfree((void*)p->trapframe);
     }
     p->trapframe = 0;
+
+    if (p->alarmframe){
+        kfree((void*)p->alarmframe);
+    }
+    p->alarmframe = 0;
+
     if(p->pagetable){
         proc_freepagetable(p->pagetable, p->sz);
     }
@@ -449,7 +465,7 @@ exit(int status){
     }
 
     // Close all open files
-    for (fd = 0; fd < NFILE; fd++){
+    for (fd = 0; fd < NOFILE; fd++){
         if (p->ofile[fd]){
             fileclose(p->ofile[fd]);
             p->ofile[fd] = 0;
@@ -459,7 +475,7 @@ exit(int status){
     acquire(&wait_lock);
 
     // Give any children to init.
-    // TODO: reparent(p);
+    // TODO: should kill all its descendants?
 
     wakeup(p->parent);
     

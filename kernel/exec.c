@@ -26,6 +26,18 @@ int flags2perm(int flags)
     return perm;
 }
 
+// TODO: should execute in user space.
+static void
+trim_linebreak(char *path){
+    char *c = path;
+    while(*c != '\0'){
+        c++;
+    }
+    if (*(c-1) == '\n'){
+        *(c-1) = '\0';
+    }
+}
+
 // path of executable and array of arguments
 int exec(char *path, char **argv){
     int i, off;
@@ -37,6 +49,7 @@ int exec(char *path, char **argv){
     pagetable_t pgtable, oldpagetable;
     struct proc *p = current_proc();
 
+    trim_linebreak(path);
     // 1. find the inode by path in fs namespace
     if((ip = namei(path)) == 0){
         return -1;

@@ -40,3 +40,5 @@ entry("socket");
 entry("bind");
 # entry("sendto");
 entry("connect");
+entry("sigalarm");
+entry("sigreturn");

@@ -18,17 +18,22 @@ struct sock {
     uint16 protocol;        // transport layer protocol
     uint16 type;            // communication type
     uint32 src_ip;          // the source IPv4 address
-    uint32 dst_ip;         // the destination IPv4 address
+    uint32 dst_ip;          // the destination IPv4 address
     uint16 src_port;        // the source port
-    uint16 dst_port;       // the destination port
+    uint16 dst_port;        // the destination port
     struct spinlock lock;   // protects the rxq
     struct mbufq rxq;       // a queue of packets waiting to be received
     struct sock *next;      // the next socket in the list
 
-    // TCP specific fields
-    uint32 seq;             // sequence number
+    // TCP control block
+    uint32 seq;             // accumulative sequence number
     uint32 ack;
-    
+
+    uint32 send_base;       // left pointer of sliding send window.
+    uint32 next_seqno;      // next sequence number of the send window.
+    uint32 recv_base;       // left poniter of sliding receive window.
+
+    uint8 tcp_state;        // current tcp state
 };
 
 static struct spinlock socklock;

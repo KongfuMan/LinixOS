@@ -23,3 +23,6 @@
 #define SYS_socket 22
 #define SYS_bind   23
 #define SYS_connect 24
+// reserved for more network syscall
+#define SYS_sigalarm 40
+#define SYS_sigreturn 41

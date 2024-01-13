@@ -23,6 +23,10 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 
+//           ticks, handler
+int sigalarm(int, void*);
+int sigreturn(void);
+
 // domain, type, protocol
 int socket(int,int,int);
 // sockfd, src_ip, src_port
