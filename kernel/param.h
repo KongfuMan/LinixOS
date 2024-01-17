@@ -13,6 +13,7 @@
 #define MAXOPBLOCKS  10  // max # of blocks any FS op writes
 #define LOGSIZE      (MAXOPBLOCKS*3)  // max data blocks in on-disk log
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
+#define NHASH        307
 #ifdef LAB_FS
 #define FSSIZE       200000  // size of file system in blocks
 #else
@@ -24,4 +25,5 @@
 #endif
 #define MAXPATH      128   // maximum file path name
 
+#define min(a, b) ((a) < (b) ? (a) : (b))
 

@@ -9,35 +9,38 @@ K=kernel
 U=user
 
 OBJS = \
-  $K/entry.o \
-  $K/trampoline.o \
-#   $K/kalloc.o \
-#   $K/string.o \
-#   $K/main.o \
-#   $K/vm.o \
-#   $K/proc.o \
-#   $K/swtch.o \
-#   $K/trap.o \
-#   $K/syscall.o \
-#   $K/sysproc.o \
-#   $K/bio.o \
-#   $K/fs.o \
+	$K/entry.o \
+	$K/trampoline.o \
+	$K/main.o \
+	$K/kernelvec.o \
+	$K/kalloc.o \
+	$K/string.o \
+	$K/vm.o \
+	$K/proc.o \
+	$K/trap.o \
+	$K/plic.o \
+	$K/swtch.o \
+	$K/virtio_disk.o \
+    $K/syscall.o \
+	$K/exec.o \
+	$K/sysfile.o \
+	$K/bio.o \
+	$K/sleeplock.o \
+	$K/fs.o \
+	$K/file.o \
+	$K/inode.o \
+    $K/sysproc.o \
+	$K/tcp.o \
+	$K/pipe.o \
 #   $K/log.o \
-#   $K/sleeplock.o \
-#   $K/file.o \
-#   $K/pipe.o \
-#   $K/exec.o \
-#   $K/sysfile.o \
-#   $K/kernelvec.o \
-#   $K/plic.o \
-#   $K/virtio_disk.o
+
 
 OBJS_KCSAN = \
   $K/start.o \
-#   $K/console.o \
-#   $K/printf.o \
-#   $K/uart.o \
-#   $K/spinlock.o
+  $K/uart.o \
+  $K/console.o \
+  $K/printf.o \
+  $K/spinlock.o
 
 # ifdef KCSAN
 # OBJS_KCSAN += \
@@ -51,18 +54,18 @@ OBJS_KCSAN = \
 # endif
 
 
-# ifeq ($(LAB),net)
-# OBJS += \
-# 	$K/e1000.o \
-# 	$K/net.o \
-# 	$K/sysnet.o \
-# 	$K/pci.o
+# ifeq ($(LAB),x)
+OBJS += \
+	$K/e1000.o \
+	$K/net.o \
+	$K/sysnet.o \
+	$K/pci.o
 # endif
 
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
-#TOOLPREFIX = 
+TOOLPREFIX = 
 
 # Try to infer the correct TOOLPREFIX if not set
 ifndef TOOLPREFIX
@@ -98,11 +101,16 @@ CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I.
-CFLAGS += -O0
+CFLAGS += -O0 # disable optimization
+CFLAGS += -Wno-unused # suppress unused variable compile error
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
+# physical memory size: unit is MegaByte
+DRAM_SIZE := 256
+CFLAGS += -DDRAM_SIZE=$(DRAM_SIZE)
+
 # ifeq ($(LAB),net)
-# CFLAGS += -DNET_TESTS_PORT=$(SERVERPORT)
+CFLAGS += -DNET_TESTS_PORT=$(SERVERPORT)
 # endif
 
 # ifdef KCSAN
@@ -120,7 +128,7 @@ endif
 
 LDFLAGS = -z max-page-size=4096
 
-$K/kernel: $(OBJS) $(OBJS_KCSAN) $K/kernel.ld #$U/initcode
+$K/kernel: $(OBJS) $(OBJS_KCSAN) $K/kernel.ld $U/initcode
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) $(OBJS_KCSAN)
 	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
 	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
@@ -130,38 +138,37 @@ $(OBJS): EXTRAFLAG := $(KCSANFLAG)
 $K/%.o: $K/%.c
 	$(CC) $(CFLAGS) $(EXTRAFLAG) -c -o $@ $<
 
-
-# $U/initcode: $U/initcode.S
-# 	$(CC) $(CFLAGS) -march=rv64g -nostdinc -I. -Ikernel -c $U/initcode.S -o $U/initcode.o
-# 	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $U/initcode.out $U/initcode.o
-# 	$(OBJCOPY) -S -O binary $U/initcode.out $U/initcode
-# 	$(OBJDUMP) -S $U/initcode.o > $U/initcode.asm
+$U/initcode: $U/initcode.S
+	$(CC) $(CFLAGS) -march=rv64g -nostdinc -I. -Ikernel -c $U/initcode.S -o $U/initcode.o
+	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $U/initcode.out $U/initcode.o
+	$(OBJCOPY) -S -O binary $U/initcode.out $U/initcode
+	$(OBJDUMP) -S $U/initcode.o > $U/initcode.asm
 
 tags: $(OBJS) _init
 	etags *.S *.c
 
-# ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
+ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
 
 # ifeq ($(LAB),$(filter $(LAB), lock))
 # ULIB += $U/statistics.o
 # endif
 
-# _%: %.o $(ULIB)
-# 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
-# 	$(OBJDUMP) -S $@ > $*.asm
-# 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+_%: %.o $(ULIB)
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+	$(OBJDUMP) -S $@ > $*.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
-# $U/usys.S : $U/usys.pl
-# 	perl $U/usys.pl > $U/usys.S
+$U/usys.S : $U/usys.pl
+	perl $U/usys.pl > $U/usys.S
 
-# $U/usys.o : $U/usys.S
-# 	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
+$U/usys.o : $U/usys.S
+	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
 
-# $U/_forktest: $U/forktest.o $(ULIB)
-# 	# forktest has less library code linked in - needs to be small
-# 	# in order to be able to max out the proc table.
-# 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
-# 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
+$U/_forktest: $U/forktest.o $(ULIB)
+	# forktest has less library code linked in - needs to be small
+	# in order to be able to max out the proc table.
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
+	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 	gcc $(XCFLAGS) -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
@@ -173,17 +180,18 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 # .PRECIOUS: %.o
 
 UPROGS=\
-# 	$U/_cat\
-# 	$U/_echo\
+ 	$U/_init\
+	$U/_cat\
+	$U/_echo\
+	$U/_sh\
+	$U/_alarmtest\
 # 	$U/_forktest\
 # 	$U/_grep\
-# 	$U/_init\
 # 	$U/_kill\
 # 	$U/_ln\
 # 	$U/_ls\
 # 	$U/_mkdir\
 # 	$U/_rm\
-# 	$U/_sh\
 # 	$U/_stressfs\
 # 	$U/_usertests\
 # 	$U/_grind\
@@ -251,8 +259,8 @@ UPROGS=\
 
 
 # ifeq ($(LAB),net)
-# UPROGS += \
-# 	$U/_nettests
+UPROGS += \
+	$U/_nettests
 # endif
 
 UEXTRA=
@@ -276,29 +284,37 @@ clean:
 	ph barrier
 
 # try to generate a unique GDB port
-GDBPORT = $(shell expr `id -u` % 5000 + 25000)
+# GDBPORT = $(shell expr `id -u` % 5000 + 25000)
+GDBPORT = 26001
 # QEMU's gdb stub command line changed in 0.11
 QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 3
+CPUS := 1
 endif
 ifeq ($(LAB),fs)
 CPUS := 1
 endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)
+UDPFWDPORT = $(FWDPORT)
+TCPFWDPORT = $(shell expr `id -u` % 5000 + 26999)
+TCPPORT = 3000
+UDPPORT = 2000
 
-QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
+CFLAGS += -DTCPPORT=$(TCPPORT)
+CFLAGS += -DUDPPORT=$(UDPPORT)
+
+QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m $(DRAM_SIZE)M -smp $(CPUS) -nographic
 QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
-ifeq ($(LAB),net)
-QEMUOPTS += -netdev user,id=net0,hostfwd=udp::$(FWDPORT)-:2000 -object filter-dump,id=net0,netdev=net0,file=packets.pcap
+# ifeq ($(LAB),net)
+QEMUOPTS += -netdev user,id=net0,hostfwd=udp::$(UDPFWDPORT)-:$(UDPPORT),hostfwd=tcp::$(TCPFWDPORT)-:$(TCPPORT) -object filter-dump,id=net0,netdev=net0,file=packets.pcap
 QEMUOPTS += -device e1000,netdev=net0,bus=pcie.0
-endif
+# endif
 
 qemu: $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
@@ -310,7 +326,7 @@ qemu-gdb: $K/kernel .gdbinit fs.img
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
-ifeq ($(LAB),net)
+# ifeq ($(LAB),net)
 # try to generate a unique port for the echo server
 SERVERPORT = $(shell expr `id -u` % 5000 + 25099)
 
@@ -319,7 +335,7 @@ server:
 
 ping:
 	python3 ping.py $(FWDPORT)
-endif
+# endif
 
 ##
 ##  FOR testing lab grading script
@@ -329,8 +345,8 @@ endif
 # GRADEFLAGS += -v
 # endif
 
-# print-gdbport:
-# 	@echo $(GDBPORT)
+print-gdbport:
+	@echo $(GDBPORT)
 
 # grade:
 # 	@echo $(MAKE) clean

@@ -10,7 +10,7 @@
             "name": "Attach to gdbserver",
             "gdbpath": "/usr/bin/gdb-multiarch",
             "executable": "./kernel/kernel",
-            "target": ":26000",
+            "target": ":26001",
             "remote": true,
             "cwd": "${workspaceRoot}",
             "valuesFormatting": "parseText",

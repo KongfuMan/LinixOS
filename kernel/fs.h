@@ -2,8 +2,8 @@
 // Both the kernel and user programs use this header file.
 
 
-#define ROOTINO  1   // root i-number
-#define BSIZE 1024  // block size
+#define ROOTINO  1   // root i-number, 0 is reserved to represent free inode
+#define BSIZE 1024   // block size
 
 // Disk layout:
 // [ boot block | super block | log | inode blocks |
@@ -26,7 +26,7 @@ struct superblock {
 
 #define NDIRECT 12
 #define NINDIRECT (BSIZE / sizeof(uint))
-#define MAXFILE (NDIRECT + NINDIRECT)
+#define MAXFILE (NDIRECT + NINDIRECT)   // Max number of blocks
 
 // On-disk inode structure
 struct dinode {
@@ -51,10 +51,10 @@ struct dinode {
 #define BBLOCK(b, sb) ((b)/BPB + sb.bmapstart)
 
 // Directory is a file containing a sequence of dirent structures.
-#define DIRSIZ 14
+#define DIRSIZE 14
 
+// directory entry
 struct dirent {
   ushort inum;
-  char name[DIRSIZ];
+  char name[DIRSIZE];
 };
-
