@@ -31,8 +31,8 @@ OBJS = \
 	$K/inode.o \
     $K/sysproc.o \
 	$K/tcp.o \
+	$K/pipe.o \
 #   $K/log.o \
-#   $K/pipe.o \
 
 
 OBJS_KCSAN = \
@@ -315,8 +315,6 @@ QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 QEMUOPTS += -netdev user,id=net0,hostfwd=udp::$(UDPFWDPORT)-:$(UDPPORT),hostfwd=tcp::$(TCPFWDPORT)-:$(TCPPORT) -object filter-dump,id=net0,netdev=net0,file=packets.pcap
 QEMUOPTS += -device e1000,netdev=net0,bus=pcie.0
 # endif
-
-QEMUOPTS += -D /home/jaychen/Documents/qemu.log
 
 qemu: $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
