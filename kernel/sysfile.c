@@ -24,7 +24,7 @@ argfd(int n, int *pfd, struct file **pf)
   if(fd < 0 || fd >= NOFILE || (f=current_proc()->ofile[fd]) == 0)
     return -1;
   if(pfd)
-    *pfd = fd;
+*pfd = fd;
   if(pf)
     *pf = f;
   return 0;
@@ -346,6 +346,31 @@ sys_connect(void){
     }
 
     if (sockconn(f->sock, dst_ip, dst_port) < 0){
+        return -1;
+    }
+
+    return 0;
+}
+
+uint64
+sys_pipe(void){
+    uint64 usr_fdarr;
+    struct file *rf, *wf;
+    int fd[2];
+    struct proc *p;
+
+    argaddr(0, &usr_fdarr); // get the pipefd array address in user space
+
+    if (pipealloc(&rf, &wf) < 0){
+        return -1;
+    }
+
+    if ((fd[0] = fdalloc(rf)) < 0 || (fd[1] = fdalloc(wf)) < 0){
+        return -1;
+    }
+
+    p = current_proc();
+    if (copyout(p->pagetable, usr_fdarr, (char *)fd, sizeof(fd))< 0){ 
         return -1;
     }
 

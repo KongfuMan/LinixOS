@@ -185,6 +185,7 @@ UPROGS=\
 	$U/_echo\
 	$U/_sh\
 	$U/_alarmtest\
+	$U/_pipetest\
 # 	$U/_forktest\
 # 	$U/_grep\
 # 	$U/_kill\

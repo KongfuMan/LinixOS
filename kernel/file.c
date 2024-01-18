@@ -80,7 +80,7 @@ void fileinit(void){
     release(&ftable.lock);
 }
 
-// write `n` bytes from file f to user virtual address `addr`
+// write `n` bytes from file f to user virtual address `dst_uva`
 // return actual number of bytes read.
 int fileread(struct file* f, uint64 dst_uva, int n){
     // 1. copy from user space to kernel space
@@ -94,28 +94,32 @@ int fileread(struct file* f, uint64 dst_uva, int n){
         return readi(f->ip, 1, dst_uva, f->off, n);
     } else if (f->type == FD_SOCK){
         return sockread(f->sock, dst_uva, n);
+    } else if(f->type == FD_PIPE){
+        return piperead(f->pipe, dst_uva, n);
     }
-    return 0;
+    return -1;
 }
 
 int filestat(struct file* file, uint64 addr){
     return 0;
 }
 
-// write `n` bytes from file f to user virtual address `addr`
+// write `n` bytes from file f to user virtual address `src_uva`
 // return actual number of bytes written.
 int
-filewrite(struct file* f, uint64 addr, int n){
+filewrite(struct file* f, uint64 src_uva, int n){
 
     if (f->type == FD_DEVICE){
         if (f->major < 0 || f->major > NDEV || devsw[f->major].write == 0 ){
             panic("");
         }
-        return devsw[f->major].write(1, addr, n);
+        return devsw[f->major].write(1, src_uva, n);
     }else if(f->type == FD_INODE){
-        return writei(f->ip, 1, addr, f->off, n);
+        return writei(f->ip, 1, src_uva, f->off, n);
     }else if (f->type == FD_SOCK){
-        return sockwrite(f->sock, addr, n);
+        return sockwrite(f->sock, src_uva, n);
+    } else if (f->type == FD_PIPE){
+        return pipewrite(f->pipe, src_uva, n);
     }
 
     // unknow file type

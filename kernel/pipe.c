@@ -5,6 +5,7 @@
 #include "sleeplock.h"
 #include "proc.h"
 #include "fs.h"
+#include "file.h"
 #include "buf.h"
 #include "net.h"
 #include "defs.h"
@@ -23,22 +24,56 @@ struct pipe {
     int writeopen;
 };
 
-uint64
+int
 pipealloc(struct file **rf, struct file **wf){
+    struct pipe *p;
+    *rf = 0, *wf = 0;
+    if ((*rf = filealloc()) == 0 || (*wf = filealloc()) == 0){
+        goto failure;
+    }
+
+    if ((p = (struct pipe*)kalloc()) == 0){
+        goto failure;
+    }
+
+    (*rf)->type = FD_PIPE;
+    (*rf)->pipe = p;
+    (*rf)->readable = 1;
+    (*rf)->writable = 0;
+
+    (*wf)->type = FD_PIPE;
+    (*wf)->pipe = p;
+    (*wf)->readable = 0;
+    (*wf)->writable = 1;   
+    return 0;
+
+failure:
+    if (*rf){
+        fileclose(*rf);
+    }
+
+    if (*wf){
+        fileclose(*wf);
+    }
+
+    if (p){
+        kfree(p);
+    }
     return -1;
 }
 
-uint64
+int
 pipeclose(struct pipe *p){
+
     return -1;
 }
 
-uint64
+int
 piperead(struct pipe *p, uint64 usr_dst, int len){
     return -1;
 }
 
-uint64
+int
 pipewrite(struct pipe *p, uint64 usr_src, int len){
     return -1;
 }

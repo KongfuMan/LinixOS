@@ -9,6 +9,7 @@ struct inode;
 struct file;
 struct stat;
 struct sock;
+struct pipe;
 
 // console.c
 void consoleinit(void);
@@ -208,3 +209,10 @@ int             sockbind(struct sock*, uint32 , uint16);
 
 //tcp.c
 void            tcp_connect(uint32, uint16, uint16);
+
+
+// pipe.c
+int             pipealloc(struct file **, struct file **);
+int             pipeclose(struct pipe *);
+int             piperead(struct pipe *, uint64, int);
+int             pipewrite(struct pipe *, uint64, int);
