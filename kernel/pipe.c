@@ -11,13 +11,13 @@
 #include "defs.h"
 #include "memlayout.h"
 
-#define PIPENUM 512
+#define PIPESIZE 512
 
 struct pipe {
     struct spinlock lock;
 
     // circular array
-    char data[PIPENUM];
+    char data[PIPESIZE];
     int ridx;
     int widx;
     int readopen;
@@ -62,18 +62,72 @@ failure:
     return -1;
 }
 
-int
-pipeclose(struct pipe *p){
-
-    return -1;
+void
+pipeclose(struct pipe *p, int writable){
+    acquire(&p->lock);
+    if(writable){
+        p->writeopen = 0;
+        wakeup(&p->ridx);
+    } else {
+        p->readopen = 0;
+        wakeup(&p->widx);
+    }
+    if(p->readopen == 0 && p->writeopen == 0){
+        release(&p->lock);
+        kfree((char*)p);
+    } else{
+        release(&p->lock);
+    }
 }
 
 int
 piperead(struct pipe *p, uint64 usr_dst, int len){
-    return -1;
+    struct proc *proc;
+    int i;
+    char ch;
+
+    acquire(&p->lock);
+    while(p->ridx == p->widx && p->writeopen){
+        sleep(&p->ridx, &p->lock);
+    }
+
+    proc = current_proc();
+    for (i = 0; p->ridx != p->widx && i < len; i++){
+        ch = p->data[p->ridx++ % PIPESIZE];
+        if(copyout(proc->pagetable, usr_dst + i, &ch, 1) == -1){
+            break;
+        }
+    }
+    wakeup(&p->widx);  //DOC: piperead-wakeup
+    release(&p->lock);
+    return i;
 }
 
 int
-pipewrite(struct pipe *p, uint64 usr_src, int len){
-    return -1;
+pipewrite(struct pipe *p, uint64 usr_src, int n){
+    int i = 0;
+    struct proc *pr = current_proc();
+
+    acquire(&p->lock);
+    while(i < n){
+        if(p->readopen == 0){
+            release(&p->lock);
+            return -1;
+        }
+        if(p->widx == p->ridx + PIPESIZE){ //DOC: pipewrite-full
+            wakeup(&p->ridx);
+            sleep(&p->widx, &p->lock);
+        } 
+        else {
+            char ch;
+            if(copyin(pr->pagetable, &ch, usr_src + i, 1) == -1)
+                break;
+            p->data[p->widx++ % PIPESIZE] = ch;
+            i++;
+        }
+    }
+    wakeup(&p->ridx);
+    release(&p->lock);
+
+    return i;
 }

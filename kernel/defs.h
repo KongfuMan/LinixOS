@@ -213,6 +213,6 @@ void            tcp_connect(uint32, uint16, uint16);
 
 // pipe.c
 int             pipealloc(struct file **, struct file **);
-int             pipeclose(struct pipe *);
+void            pipeclose(struct pipe *, int);
 int             piperead(struct pipe *, uint64, int);
 int             pipewrite(struct pipe *, uint64, int);
