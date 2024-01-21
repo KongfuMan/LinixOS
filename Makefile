@@ -299,7 +299,9 @@ CPUS := 1
 endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)
+ #UDPFWDPORT = 26999
 UDPFWDPORT = $(FWDPORT)
+ #TCPFWDPORT = 27999
 TCPFWDPORT = $(shell expr `id -u` % 5000 + 26999)
 TCPPORT = 3000
 UDPPORT = 2000
